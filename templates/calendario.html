@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calendario Simple - Consultorio</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <div class="max-w-md mx-auto bg-white rounded-lg shadow-lg p-6">
+            <h1 class="text-2xl font-bold text-center text-gray-800 mb-6">Calendario Simple</h1>
+            
+            <!-- Controles del calendario -->
+            <div class="flex items-center justify-between mb-4">
+                <button id="btn-anterior" class="p-2 hover:bg-gray-100 rounded-full">
+                    <i class="fas fa-chevron-left text-gray-600"></i>
+                </button>
+                <h2 id="mes-actual" class="text-lg font-semibold text-gray-800"></h2>
+                <button id="btn-siguiente" class="p-2 hover:bg-gray-100 rounded-full">
+                    <i class="fas fa-chevron-right text-gray-600"></i>
+                </button>
+            </div>
+            
+            <!-- Grid del calendario -->
+            <div class="grid grid-cols-7 gap-1 mb-4">
+                <!-- Headers de días -->
+                <div class="text-center text-sm font-medium text-gray-600 py-2">Dom</div>
+                <div class="text-center text-sm font-medium text-gray-600 py-2">Lun</div>
+                <div class="text-center text-sm font-medium text-gray-600 py-2">Mar</div>
+                <div class="text-center text-sm font-medium text-gray-600 py-2">Mié</div>
+                <div class="text-center text-sm font-medium text-gray-600 py-2">Jue</div>
+                <div class="text-center text-sm font-medium text-gray-600 py-2">Vie</div>
+                <div class="text-center text-sm font-medium text-gray-600 py-2">Sáb</div>
+            </div>
+            
+            <!-- Días del calendario -->
+            <div id="calendario-dias" class="grid grid-cols-7 gap-1">
+                <!-- Los días se generarán dinámicamente -->
+            </div>
+            
+            <!-- Información de fecha seleccionada -->
+            <div id="fecha-seleccionada" class="mt-4 p-3 bg-blue-50 rounded-lg hidden">
+                <p class="text-sm text-blue-800">
+                    <strong>Fecha seleccionada:</strong> <span id="fecha-texto"></span>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Variables globales
+        let fechaActual = new Date();
+        let mesActual = fechaActual.getMonth();
+        let añoActual = fechaActual.getFullYear();
+        let fechaSeleccionada = null;
+
+        // Nombres de meses
+        const meses = [
+            'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+            'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+        ];
+
+        // Inicializar calendario
+        function inicializarCalendario() {
+            console.log('DEBUG - Inicializando calendario simple');
+            actualizarCalendario();
+            configurarEventListeners();
+        }
+
+        // Configurar event listeners
+        function configurarEventListeners() {
+            document.getElementById('btn-anterior').addEventListener('click', () => {
+                mesActual--;
+                if (mesActual < 0) {
+                    mesActual = 11;
+                    añoActual--;
+                }
+                actualizarCalendario();
+            });
+
+            document.getElementById('btn-siguiente').addEventListener('click', () => {
+                mesActual++;
+                if (mesActual > 11) {
+                    mesActual = 0;
+                    añoActual++;
+                }
+                actualizarCalendario();
+            });
+        }
+
+        // Actualizar calendario
+        function actualizarCalendario() {
+            console.log('DEBUG - Actualizando calendario para:', meses[mesActual], añoActual);
+            
+            // Actualizar título del mes
+            document.getElementById('mes-actual').textContent = `${meses[mesActual]} ${añoActual}`;
+            
+            // Limpiar días
+            const container = document.getElementById('calendario-dias');
+            container.innerHTML = '';
+            
+            // Obtener datos del mes
+            const primerDia = new Date(añoActual, mesActual, 1);
+            const ultimoDia = new Date(añoActual, mesActual + 1, 0);
+            const diasEnMes = ultimoDia.getDate();
+            const diaInicioSemana = primerDia.getDay();
+            
+            console.log('DEBUG - Días en mes:', diasEnMes, 'Día inicio:', diaInicioSemana);
+            
+            // Días vacíos al inicio
+            for (let i = 0; i < diaInicioSemana; i++) {
+                const diaVacio = document.createElement('div');
+                diaVacio.className = 'h-10';
+                container.appendChild(diaVacio);
+            }
+            
+            // Días del mes
+            for (let dia = 1; dia <= diasEnMes; dia++) {
+                const fecha = new Date(añoActual, mesActual, dia);
+                const fechaStr = fecha.toISOString().split('T')[0];
+                
+                const diaElement = document.createElement('div');
+                diaElement.className = 'h-10 flex items-center justify-center cursor-pointer rounded-lg text-sm font-medium hover:bg-blue-100 transition-colors border border-gray-200 bg-white';
+                diaElement.textContent = dia;
+                
+                // Marcar día actual
+                const hoy = new Date();
+                if (fecha.toDateString() === hoy.toDateString()) {
+                    diaElement.classList.add('bg-blue-500', 'text-white', 'font-bold');
+                }
+                
+                // Marcar día seleccionado
+                if (fechaSeleccionada && fechaStr === fechaSeleccionada) {
+                    diaElement.classList.add('bg-green-500', 'text-white', 'font-bold');
+                }
+                
+                // Click handler
+                diaElement.addEventListener('click', function() {
+                    console.log('DEBUG - Click en día:', dia, 'fecha:', fechaStr);
+                    seleccionarFecha(fechaStr, dia);
+                });
+                
+                container.appendChild(diaElement);
+            }
+            
+            console.log('DEBUG - Calendario actualizado correctamente');
+        }
+
+        // Seleccionar fecha
+        function seleccionarFecha(fechaStr, dia) {
+            console.log('DEBUG - Seleccionando fecha:', fechaStr);
+            
+            // Remover selección anterior
+            if (fechaSeleccionada) {
+                const elementosAnteriores = document.querySelectorAll('.bg-green-500');
+                elementosAnteriores.forEach(el => {
+                    if (!el.classList.contains('bg-blue-500')) {
+                        el.classList.remove('bg-green-500', 'text-white', 'font-bold');
+                        el.classList.add('bg-white', 'text-gray-800');
+                    }
+                });
+            }
+            
+            // Marcar nueva selección
+            fechaSeleccionada = fechaStr;
+            const elementos = document.querySelectorAll('#calendario-dias > div');
+            elementos.forEach(el => {
+                if (el.textContent == dia && !el.classList.contains('bg-blue-500')) {
+                    el.classList.remove('bg-white', 'text-gray-800');
+                    el.classList.add('bg-green-500', 'text-white', 'font-bold');
+                }
+            });
+            
+            // Mostrar información de fecha seleccionada
+            const fecha = new Date(fechaStr);
+            const fechaFormateada = fecha.toLocaleDateString('es-AR', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+            
+            document.getElementById('fecha-texto').textContent = fechaFormateada;
+            document.getElementById('fecha-seleccionada').classList.remove('hidden');
+            
+            console.log('DEBUG - Fecha seleccionada:', fechaFormateada);
+        }
+
+        // Inicializar cuando se carga la página
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DEBUG - DOM cargado, inicializando calendario simple');
+            inicializarCalendario();
+        });
+    </script>
+</body>
+</html>
+
+
+
+
+
+

@@ -1,0 +1,1839 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Panel Principal - Consultorio</title>
+
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#2563eb',
+            secondary: '#0891b2',
+            success: '#059669',
+            danger: '#dc2626',
+            warning: '#d97706',
+            info: '#7c3aed'
+          }
+        }
+      }
+    };
+  </script>
+  
+  <!-- FontAwesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <!-- Bootstrap & Icons -->
+  <link rel="stylesheet"
+        href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+  <link rel="stylesheet"
+        href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+
+
+  <style>
+    body{
+      background:#f4f6f9;
+      font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;
+      padding:20px;min-height:100vh;display:flex;flex-direction:column
+    }
+    h1,h3,h4{color:#2c3e50}
+    .card-panel{background:#fff;border-radius:16px;box-shadow:0 6px 12px rgb(0 0 0 / .05);padding:25px;margin-bottom:30px}
+    #logout-btn{background:#dc3545;color:#fff;font-weight:600;transition:.3s}
+    #logout-btn:hover{background:#bb2d3b}
+    #info-usuario{font-weight:600;color:#2c3e50;margin-left:auto;white-space:nowrap}
+    .btn-action{width:100%;text-align:left;font-weight:600;font-size:1rem;padding:15px 20px;border-radius:12px;transition:.3s}
+    .btn-action i{margin-right:12px;font-size:1.25rem}
+    .btn-outline-primary.btn-action:hover{background:#0d6efd;color:#fff!important}
+    .btn-outline-success.btn-action:hover{background:#198754;color:#fff!important}
+    .btn-outline-info.btn-action:hover{background:#0dcaf0;color:#fff!important}
+    @media(max-width:600px){
+      #logout-btn,#info-usuario{float:none;width:100%;text-align:center;margin-bottom:10px}
+    }
+    /* Resumen */
+    #resumen-medico ul{max-width:400px;margin:0 auto}
+    #resumen-medico li{font-size:1.05rem;font-weight:600}
+    /* Tarjetas de historias */
+    #resultado .card-panel{border-radius:12px;box-shadow:0 3px 8px rgb(0 0 0 /.08);padding:18px;margin-bottom:18px;transition:.2s}
+    #resultado .card-panel:hover{box-shadow:0 6px 16px rgb(0 0 0 /.15)}
+  </style>
+</head>
+<body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen flex flex-col">
+  <!-- Header -->
+  <div class="bg-white shadow-lg border-b-4 border-primary">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center space-x-3">
+          <div class="bg-primary p-3 rounded-full">
+            <i class="fas fa-hospital text-white text-xl"></i>
+          </div>
+          <div>
+            <h1 class="text-3xl font-bold text-gray-900">Panel Principal</h1>
+            <p class="text-gray-600">Bienvenido/a <span id="info-usuario" class="text-primary font-semibold"></span></p>
+          </div>
+        </div>
+        <button onclick="location.href='/logout'" class="bg-danger hover:bg-red-700 text-white px-6 py-3 rounded-lg font-semibold transition-colors duration-200 flex items-center space-x-2">
+          <i class="fas fa-sign-out-alt"></i>
+          <span>Cerrar Sesión</span>
+    </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Contenido Principal -->
+  <div class="flex-1">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    
+    <!-- Estadísticas rápidas -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+      <div class="bg-white rounded-xl p-6 shadow-lg border border-gray-200 hover:shadow-xl transition-shadow duration-300">
+        <div class="flex items-center">
+          <div class="bg-primary p-3 rounded-lg">
+            <i class="fas fa-calendar-check text-white text-xl"></i>
+          </div>
+          <div class="ml-4">
+            <p class="text-sm font-medium text-gray-600">Turnos Hoy</p>
+            <p class="text-2xl font-bold text-primary" id="turnos-hoy">-</p>
+          </div>
+        </div>
+      </div>
+      
+      <div class="bg-white rounded-xl p-6 shadow-lg border border-gray-200 hover:shadow-xl transition-shadow duration-300">
+        <div class="flex items-center">
+          <div class="bg-success p-3 rounded-lg">
+            <i class="fas fa-users text-white text-xl"></i>
+          </div>
+          <div class="ml-4">
+            <p class="text-sm font-medium text-gray-600">Pacientes</p>
+            <p class="text-2xl font-bold text-success" id="total-pacientes">-</p>
+          </div>
+        </div>
+      </div>
+      
+      <div class="bg-white rounded-xl p-6 shadow-lg border border-gray-200 hover:shadow-xl transition-shadow duration-300">
+        <div class="flex items-center">
+          <div class="bg-info p-3 rounded-lg">
+            <i class="fas fa-user-md text-white text-xl"></i>
+      </div>
+          <div class="ml-4">
+            <p class="text-sm font-medium text-gray-600">Médicos</p>
+            <p class="text-2xl font-bold text-info" id="total-medicos">-</p>
+          </div>
+        </div>
+      </div>
+      
+      <div class="bg-white rounded-xl p-6 shadow-lg border border-gray-200 hover:shadow-xl transition-shadow duration-300">
+        <div class="flex items-center">
+          <div class="bg-warning p-3 rounded-lg">
+            <i class="fas fa-clock text-white text-xl"></i>
+      </div>
+          <div class="ml-4">
+            <p class="text-sm font-medium text-gray-600">En Espera</p>
+            <p class="text-2xl font-bold text-warning" id="en-espera">-</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Acciones -->
+    <div class="bg-white rounded-2xl shadow-lg p-8 mb-8" id="contenedor-botones">
+      <div class="text-center mb-8">
+        <h2 class="text-2xl font-bold text-gray-900 mb-2">Acciones Rápidas</h2>
+        <p class="text-gray-600">Selecciona una opción para comenzar</p>
+      </div>
+      
+      <!-- Botones para Secretaria -->
+      <div id="botones-secretaria" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6" style="display:none">
+        <a href="/agenda" class="bg-white rounded-xl p-6 shadow-lg border border-gray-200 hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group">
+          <div class="text-center">
+            <div class="bg-primary p-4 rounded-xl mx-auto mb-4 w-16 h-16 flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
+              <i class="fas fa-calendar-week text-white text-2xl"></i>
+            </div>
+            <h3 class="text-lg font-semibold text-gray-900 mb-2">Administrar Agenda</h3>
+            <p class="text-sm text-gray-600">Gestionar horarios de médicos</p>
+          </div>
+        </a>
+        
+        <a href="/pacientes" class="bg-white rounded-xl p-6 shadow-lg border border-gray-200 hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group">
+          <div class="text-center">
+            <div class="bg-success p-4 rounded-xl mx-auto mb-4 w-16 h-16 flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
+              <i class="fas fa-user-plus text-white text-2xl"></i>
+      </div>
+            <h3 class="text-lg font-semibold text-gray-900 mb-2">Registrar Pacientes</h3>
+            <p class="text-sm text-gray-600">Agregar nuevos pacientes</p>
+          </div>
+        </a>
+        
+        <a href="/turnos" class="bg-white rounded-xl p-6 shadow-lg border border-gray-200 hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group">
+          <div class="text-center">
+            <div class="bg-secondary p-4 rounded-xl mx-auto mb-4 w-16 h-16 flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
+              <i class="fas fa-clipboard-check text-white text-2xl"></i>
+      </div>
+            <h3 class="text-lg font-semibold text-gray-900 mb-2">Gestionar Turnos</h3>
+            <p class="text-sm text-gray-600">Administrar citas médicas</p>
+    </div>
+        </a>
+        
+        <a href="/secretaria" class="bg-white rounded-xl p-6 shadow-lg border border-gray-200 hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group">
+          <div class="text-center">
+            <div class="bg-warning p-4 rounded-xl mx-auto mb-4 w-16 h-16 flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
+              <i class="fas fa-tachometer-alt text-white text-2xl"></i>
+      </div>
+            <h3 class="text-lg font-semibold text-gray-900 mb-2">Panel Secretaría</h3>
+            <p class="text-sm text-gray-600">Dashboard completo</p>
+          </div>
+        </a>
+      </div>
+          <!-- Médico -->
+    <div id="botones-medico" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6" style="display:none">
+      <a href="/turnos-medico" class="bg-white rounded-xl p-6 shadow-lg border border-gray-200 hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group">
+        <div class="text-center">
+          <div class="bg-blue-600 p-4 rounded-xl mx-auto mb-4 w-16 h-16 flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
+            <i class="fas fa-clipboard-check text-white text-2xl"></i>
+          </div>
+          <h3 class="text-lg font-semibold text-gray-900 mb-2">Gestión de Pacientes</h3>
+          <p class="text-sm text-gray-600">Administrar flujo de pacientes</p>
+        </div>
+      </a>
+      
+      <a href="/historias-gestion" class="bg-white rounded-xl p-6 shadow-lg border border-gray-200 hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group">
+        <div class="text-center">
+          <div class="bg-warning p-4 rounded-xl mx-auto mb-4 w-16 h-16 flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
+            <i class="fas fa-file-medical text-white text-2xl"></i>
+      </div>
+          <h3 class="text-lg font-semibold text-gray-900 mb-2">Historias Clínicas</h3>
+          <p class="text-sm text-gray-600">Gestionar historias médicas</p>
+        </div>
+      </a>
+      
+      <button onclick="abrirModalHistoriaClinica()" class="bg-white rounded-xl p-6 shadow-lg border border-gray-200 hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group">
+        <div class="text-center">
+          <div class="bg-success p-4 rounded-xl mx-auto mb-4 w-16 h-16 flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
+            <i class="fas fa-file-medical text-white text-2xl"></i>
+          </div>
+          <h3 class="text-lg font-semibold text-gray-900 mb-2">Crear Historia Clínica</h3>
+          <p class="text-sm text-gray-600">Nueva consulta médica</p>
+        </div>
+        </button>
+      
+      <button onclick="abrirAgendaMedico()" class="bg-white rounded-xl p-6 shadow-lg border border-gray-200 hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group">
+        <div class="text-center">
+          <div class="bg-primary p-4 rounded-xl mx-auto mb-4 w-16 h-16 flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
+            <i class="fas fa-calendar-week text-white text-2xl"></i>
+      </div>
+          <h3 class="text-lg font-semibold text-gray-900 mb-2">Mi Agenda</h3>
+          <p class="text-sm text-gray-600">Ver horarios y turnos</p>
+        </div>
+      </button>
+    </div>
+  </div>
+
+  <!-- Dashboard del Médico -->
+  <div id="dashboard-medico" class="bg-white rounded-xl shadow-lg border border-gray-200 p-6 mb-8" style="display:none">
+    
+    <!-- Estadísticas Rápidas -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div class="bg-white rounded-xl p-6 shadow-lg border border-gray-200 hover:shadow-xl transition-all duration-300">
+        <div class="flex items-center">
+          <div class="bg-primary p-3 rounded-lg">
+            <i class="fas fa-clock text-white text-xl"></i>
+          </div>
+          <div class="ml-4">
+            <p class="text-sm font-medium text-gray-600">Pendientes Hoy</p>
+            <p class="text-2xl font-bold text-gray-900" id="turnos-pendientes">0</p>
+          </div>
+        </div>
+      </div>
+    
+      <div class="bg-white rounded-xl p-6 shadow-lg border border-gray-200 hover:shadow-xl transition-all duration-300">
+        <div class="flex items-center">
+          <div class="bg-warning p-3 rounded-lg">
+            <i class="fas fa-users text-white text-xl"></i>
+          </div>
+          <div class="ml-4">
+            <p class="text-sm font-medium text-gray-600">En Sala de Espera</p>
+            <p class="text-2xl font-bold text-gray-900" id="en-sala-espera">0</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-xl p-6 shadow-lg border border-gray-200 hover:shadow-xl transition-all duration-300">
+        <div class="flex items-center">
+          <div class="bg-success p-3 rounded-lg">
+            <i class="fas fa-check-circle text-white text-xl"></i>
+          </div>
+          <div class="ml-4">
+            <p class="text-sm font-medium text-gray-600">Atendidos Hoy</p>
+            <p class="text-2xl font-bold text-gray-900" id="pacientes-atendidos">0</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-xl p-6 shadow-lg border border-gray-200 hover:shadow-xl transition-all duration-300">
+        <div class="flex items-center">
+          <div class="bg-info p-3 rounded-lg">
+            <i class="fas fa-calendar-week text-white text-xl"></i>
+          </div>
+          <div class="ml-4">
+            <p class="text-sm font-medium text-gray-600">Total Turnos Hoy</p>
+            <p class="text-2xl font-bold text-gray-900" id="total-turnos-hoy">0</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Próximos Turnos -->
+    <div class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-6 mb-8">
+      <div class="flex items-center justify-between mb-6">
+        <h3 class="text-xl font-semibold text-gray-900 flex items-center">
+          <i class="fas fa-clock text-primary mr-3"></i>
+          Próximos Turnos
+        </h3>
+        <div class="bg-white rounded-lg px-3 py-1 shadow-sm">
+          <span class="text-sm text-gray-600">Hoy</span>
+        </div>
+      </div>
+      
+      <div id="proximos-turnos" class="space-y-3">
+        <div class="flex items-center justify-center py-8">
+          <div class="text-center">
+            <i class="fas fa-calendar-alt text-gray-300 text-3xl mb-3"></i>
+            <p class="text-gray-500">Cargando próximos turnos...</p>
+          </div>
+        </div>
+      </div>
+    </div>
+        
+  <!-- Buscador de historias (solo médico) -->
+  <div id="busqueda-pacientes" class="bg-white rounded-xl shadow-lg border border-gray-200 p-6 mb-8" style="display:none">
+    <div class="bg-gradient-to-r from-info to-blue-600 text-white px-6 py-4 rounded-t-xl -m-6 mb-6">
+      <h3 class="text-lg font-semibold flex items-center">
+        <i class="fas fa-search mr-2"></i>
+        Buscar Historia Clínica
+      </h3>
+              </div>
+    
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">Buscar por DNI</label>
+        <div class="relative">
+          <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <i class="fas fa-id-card text-gray-400"></i>
+            </div>
+          <input id="dni_buscar" class="w-full border border-gray-300 rounded-lg pl-10 pr-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" placeholder="Ingrese DNI" type="number">
+          </div>
+              </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">Buscar por Apellido</label>
+        <div class="relative">
+          <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <i class="fas fa-user text-gray-400"></i>
+            </div>
+          <input id="apellido_buscar" class="w-full border border-gray-300 rounded-lg pl-10 pr-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" placeholder="Ingrese apellido">
+          </div>
+      </div>
+    </div>
+    
+    <div class="flex flex-wrap gap-3 mb-6">
+      <button onclick="buscarPorDNI()" class="bg-primary hover:bg-red-700 text-white px-4 py-2 rounded-lg transition-colors flex items-center space-x-2">
+        <i class="fas fa-search"></i>
+        <span>Buscar por DNI</span>
+      </button>
+      <button onclick="buscarPorApellido()" class="bg-primary hover:bg-red-700 text-white px-4 py-2 rounded-lg transition-colors flex items-center space-x-2">
+        <i class="fas fa-search"></i>
+        <span>Buscar por Apellido</span>
+      </button>
+      <button onclick="cargarHistorias()" class="bg-success hover:bg-green-600 text-white px-4 py-2 rounded-lg transition-colors flex items-center space-x-2">
+        <i class="fas fa-list"></i>
+        <span>Cargar todas</span>
+      </button>
+      <button onclick="limpiarBusqueda()" class="bg-warning hover:bg-yellow-600 text-white px-4 py-2 rounded-lg transition-colors flex items-center space-x-2">
+        <i class="fas fa-sync-alt"></i>
+        <span>Limpiar</span>
+                </button>
+              </div>
+    
+    <!-- Estadísticas de búsqueda -->
+    <div id="estadisticas-busqueda" class="hidden">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="bg-primary text-white rounded-xl p-6 text-center">
+          <h4 class="text-2xl font-bold" id="total-resultados">0</h4>
+          <p class="text-sm opacity-90">Resultados encontrados</p>
+            </div>
+        <div class="bg-success text-white rounded-xl p-6 text-center">
+          <h4 class="text-2xl font-bold" id="pacientes-unicos">0</h4>
+          <p class="text-sm opacity-90">Pacientes únicos</p>
+          </div>
+        <div class="bg-info text-white rounded-xl p-6 text-center">
+          <button onclick="descargarResultadosPDF()" class="bg-white text-info hover:bg-gray-100 px-4 py-2 rounded-lg transition-colors flex items-center space-x-2 mx-auto">
+            <i class="fas fa-download"></i>
+            <span>Descargar PDF</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Resultados de historias -->
+  <div id="resultado"></div>
+</div>
+
+  <!-- Bootstrap JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+
+  <!-- Modal de Agenda del Médico -->
+  <div id="modalAgendaMedico" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+    <div class="bg-white rounded-xl p-6 w-full max-w-4xl mx-4 max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between mb-6">
+        <h3 class="text-xl font-semibold text-gray-900 flex items-center">
+          <i class="fas fa-calendar-week text-primary mr-3"></i>
+          Mi Agenda
+        </h3>
+        <button onclick="cerrarModalAgenda()" class="text-gray-400 hover:text-gray-600">
+          <i class="fas fa-times text-xl"></i>
+        </button>
+      </div>
+      
+      <!-- Selector de Fecha -->
+      <div class="mb-6">
+        <div class="flex items-center space-x-4">
+          <div class="flex-1">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Seleccionar Fecha</label>
+            <input type="date" id="fecha-agenda-modal" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" onchange="cargarAgendaModal()">
+          </div>
+          <div class="flex items-end">
+            <button onclick="cargarAgendaHoy()" class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg transition-colors">
+              <i class="fas fa-calendar-day mr-2"></i>Hoy
+            </button>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Contenido de la Agenda -->
+      <div id="contenido-agenda-modal" class="min-h-[400px]">
+        <div class="flex items-center justify-center h-64">
+          <div class="text-center">
+            <i class="fas fa-calendar-alt text-gray-300 text-4xl mb-4"></i>
+            <p class="text-gray-500">Selecciona una fecha para ver tu agenda</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /* === Cargar info de sesión === */
+    fetch("/api/session-info")
+      .then(r=>r.json())
+      .then(({usuario,rol})=>{
+        if(!usuario||!rol) return;
+        document.getElementById("info-usuario").textContent=`${usuario} | ${rol.toUpperCase()}`;
+
+
+        if(rol==="secretaria"){
+          document.getElementById("botones-secretaria").style.display="flex";
+        }else if(rol==="medico"){
+          document.getElementById("botones-medico").style.display="flex";
+          document.getElementById("busqueda-pacientes").style.display="block";
+          document.getElementById("dashboard-medico").style.display="block";
+          cargarDashboardMedico();          // <- nuevo dashboard mejorado
+        }
+      });
+
+
+    /* === Dashboard del Médico === */
+    // Debug inicial
+    console.log('🚀 Script del dashboard del médico iniciado');
+    
+    let usuarioMedico = null;
+     let historiasResultado = []; // Para almacenar resultados de búsqueda
+    
+    function cargarDashboardMedico(){
+      console.log('📊 cargarDashboardMedico() llamada');
+      // Establecer fecha de hoy por defecto
+      const hoy = new Date().toLocaleDateString('en-CA'); // formato YYYY-MM-DD en zona local
+      document.getElementById("fecha-agenda-modal").value = hoy;
+      
+      // Cargar estadísticas del día
+      cargarEstadisticasMedico();
+      
+      // Cargar agenda de hoy
+      cargarAgendaHoy();
+      
+      // Cargar próximos turnos
+      cargarProximosTurnos();
+    }
+    
+    function cargarEstadisticasMedico(){
+      console.log('DEBUG - cargarEstadisticasMedico() llamada');
+      const hoy = new Date().toLocaleDateString('en-CA'); // formato YYYY-MM-DD en zona local
+      console.log('DEBUG - Fecha de hoy:', hoy);
+      
+      // Cargar turnos, pacientes y usuarios en paralelo
+      Promise.all([
+        fetch("/api/turnos/medico"),
+        fetch("/api/pacientes"),
+        fetch("/api/usuarios")
+      ])
+      .then(responses => {
+        console.log('DEBUG - Responses recibidas:', responses.map(r => r.status));
+        return Promise.all(responses.map(r => r.json()));
+      })
+      .then(([turnos, pacientes, usuarios]) => {
+        console.log('DEBUG - Datos recibidos:', { turnos: turnos.length, pacientes: pacientes.length, usuarios: usuarios.length });
+        
+        // Calcular estadísticas de turnos
+        const turnosHoy = turnos.filter(t => t.fecha === hoy);
+        console.log('DEBUG - Turnos de hoy:', turnosHoy);
+        
+        const pendientes = turnosHoy.filter(t => ["sin atender", "pendiente"].includes(t.estado)).length;
+        const enSala = turnosHoy.filter(t => ["sala de espera"].includes(t.estado)).length;
+        const atendidos = turnosHoy.filter(t => t.estado === "atendido").length;
+        const total = turnosHoy.length;
+        
+        // Calcular estadísticas generales
+        const medicos = usuarios.filter(u => u.rol === 'medico');
+        
+        console.log('DEBUG - Estadísticas calculadas:', { pendientes, enSala, atendidos, total, pacientes: pacientes.length, medicos: medicos.length });
+        
+        // Actualizar las tarjetas principales del dashboard
+        document.getElementById("turnos-hoy").textContent = total;
+        document.getElementById("total-pacientes").textContent = pacientes.length;
+        document.getElementById("total-medicos").textContent = medicos.length;
+        document.getElementById("en-espera").textContent = enSala;
+        
+        // También actualizar las estadísticas específicas del médico
+        document.getElementById("turnos-pendientes").textContent = pendientes;
+        document.getElementById("en-sala-espera").textContent = enSala;
+        document.getElementById("pacientes-atendidos").textContent = atendidos;
+        document.getElementById("total-turnos-hoy").textContent = total;
+      })
+      .catch(error => {
+        console.error('DEBUG - Error en cargarEstadisticasMedico:', error);
+      });
+    }
+
+    function renderizarAgendaMedico(fecha, container){
+      console.log('DEBUG - renderizarAgendaMedico() llamada con fecha:', fecha);
+      console.log('DEBUG - Container:', container);
+      console.log('DEBUG - usuarioMedico:', usuarioMedico);
+      
+      Promise.all([
+        fetch("/api/agenda"),
+        fetch(`/api/turnos/dia?fecha=${fecha}`)
+      ])
+      .then(([agendaRes, turnosRes]) => {
+        console.log('DEBUG - Respuestas de API recibidas');
+        return Promise.all([agendaRes.json(), turnosRes.json()]);
+      })
+      .then(([agenda, turnos]) => {
+        console.log('DEBUG - Agenda recibida:', agenda);
+        console.log('DEBUG - Turnos recibidos:', turnos);
+        
+        // const fechaObj = new Date(fecha + 'T12:00:00');
+        // const diasSemana = ["DOMINGO", "LUNES", "MARTES", "MIERCOLES", "JUEVES", "VIERNES", "SABADO"];
+        // const diaSeleccionado = diasSemana[fechaObj.getDay()];
+        // FIX: evitar desfase de día por zona horaria
+        const [anio, mes, dia] = fecha.split('-');
+        const fechaObj = new Date(Number(anio), Number(mes) - 1, Number(dia));
+        const diasSemana = ["DOMINGO", "LUNES", "MARTES", "MIERCOLES", "JUEVES", "VIERNES", "SABADO"];
+        const diaSeleccionado = diasSemana[fechaObj.getDay()];
+        const fechaFormateada = `${dia}/${mes}/${anio}`;
+        console.log('DEBUG - Fecha procesada:', fechaObj, 'Día calculado:', diaSeleccionado);
+        
+        // Filtrar turnos del médico
+        const turnosMedico = turnos.filter(t => t.medico === usuarioMedico);
+        console.log('DEBUG - Turnos del médico:', turnosMedico);
+        
+        // Obtener horarios configurados para este médico en este día
+        console.log('DEBUG - Buscando horarios para:', usuarioMedico, 'en día:', diaSeleccionado);
+        console.log('DEBUG - Agenda completa:', agenda);
+        console.log('DEBUG - Agenda de Julieta Colom:', agenda[usuarioMedico]);
+        console.log('DEBUG - Agenda de Julieta Colom para', diaSeleccionado, ':', agenda[usuarioMedico]?.[diaSeleccionado]);
+        
+        const horariosConfigurados = agenda[usuarioMedico]?.[diaSeleccionado] || [];
+        console.log('DEBUG - Horarios configurados:', horariosConfigurados);
+        
+        if (horariosConfigurados.length === 0) {
+          container.innerHTML = `
+            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <div class="flex items-center">
+                <i class="fas fa-info-circle text-blue-600 mr-3"></i>
+                <div>
+                  <h4 class="text-blue-800 font-semibold">Sin horarios configurados</h4>
+                  <p class="text-blue-700">No tienes horarios configurados para ${diaSeleccionado.toLowerCase()} (${fechaFormateada})</p>
+                </div>
+              </div>
+            </div>
+          `;
+          return;
+        }
+        
+        let html = `
+          <div class="mb-6">
+            <h3 class="text-lg font-semibold text-gray-900 flex items-center mb-4">
+              <i class="fas fa-calendar-day text-primary mr-2"></i>
+              ${diaSeleccionado} - ${fechaFormateada}
+            </h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        `;
+        horariosConfigurados.forEach(hora => {
+          const turno = turnosMedico.find(t => t.hora === hora);
+          
+          if (turno) {
+            // Horario ocupado
+            const paciente = turno.paciente || {};
+            const nombrePaciente = `${paciente.nombre || ''} ${paciente.apellido || ''}`.trim() || `DNI: ${turno.dni_paciente}`;
+            const estadoColor = {
+              'sin atender': 'yellow',
+              'recepcionado': 'blue',
+              'sala de espera': 'indigo',
+              'llamado': 'purple',
+              'atendido': 'green',
+              'ausente': 'red'
+            }[turno.estado] || 'gray';
+            
+            const estadoEmoji = {
+              'sin atender': '⏳',
+              'recepcionado': '📋',
+              'sala de espera': '🪑',
+              'llamado': '📢',
+              'atendido': '✅',
+              'ausente': '❌'
+            }[turno.estado] || '⏳';
+            
+            html += `
+              <div class="bg-white border border-${estadoColor}-200 rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow">
+                <div class="text-center">
+                  <h4 class="font-semibold text-gray-900 mb-2">${hora}</h4>
+                  <div class="text-2xl mb-2">${estadoEmoji}</div>
+                  <p class="text-sm text-gray-600 mb-2">
+                    <strong>${nombrePaciente}</strong>
+                  </p>
+                  <span class="inline-block bg-${estadoColor}-100 text-${estadoColor}-800 text-xs px-2 py-1 rounded-full font-medium">
+                    ${turno.estado}
+                  </span>
+                </div>
+              </div>
+            `;
+          } else {
+            // Horario libre
+            html += `
+              <div class="bg-gray-50 border border-gray-200 rounded-lg p-4 shadow-sm">
+                <div class="text-center">
+                  <h4 class="font-semibold text-gray-900 mb-2">${hora}</h4>
+                  <div class="text-2xl mb-2 text-gray-400">⭕</div>
+                  <p class="text-sm text-gray-500">
+                      <em>Libre</em>
+                    </p>
+                </div>
+              </div>
+            `;
+          }
+        });
+        
+        html += '</div></div>';
+        console.log('DEBUG - HTML generado:', html);
+        container.innerHTML = html;
+        console.log('DEBUG - Contenido insertado en el container');
+      })
+      .catch(error => {
+        console.log('DEBUG - Error en renderizarAgendaMedico:', error);
+        container.innerHTML = `
+          <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+            <div class="flex items-center">
+              <i class="fas fa-exclamation-triangle text-red-600 mr-3"></i>
+              <div>
+                <h4 class="text-red-800 font-semibold">Error al cargar la agenda</h4>
+                <p class="text-red-700">${error.message}</p>
+              </div>
+            </div>
+          </div>
+        `;
+      });
+    }
+
+    function cargarProximosTurnos(){
+      console.log('DEBUG - cargarProximosTurnos() llamada');
+      fetch("/api/turnos/medico")
+        .then(r => {
+          console.log('DEBUG - Response status:', r.status);
+          if (!r.ok) {
+            throw new Error(`HTTP error! status: ${r.status}`);
+          }
+          return r.json();
+        })
+        .then(turnos => {
+          console.log('DEBUG - Turnos recibidos del backend (ya filtrados por médico):', turnos);
+          const ahora = new Date();
+          console.log('DEBUG - Fecha actual:', ahora);
+          
+          // Los turnos ya vienen filtrados por médico desde el backend
+          const proximosTurnos = turnos
+            .filter(t => {
+              const fechaTurno = new Date(`${t.fecha}T${t.hora}`);
+              const esFuturoOHoy = fechaTurno >= ahora;
+              const estadoValido = ['sin atender', 'pendiente', 'sala de espera'].includes(t.estado);
+              console.log(`DEBUG - Turno DNI:${t.dni_paciente}, ${t.fecha} ${t.hora}: futuroOHoy=${esFuturoOHoy}, estado=${t.estado}, válido=${estadoValido}`);
+              return esFuturoOHoy && estadoValido;
+            })
+            .sort((a, b) => new Date(`${a.fecha}T${a.hora}`) - new Date(`${b.fecha}T${b.hora}`))
+            .slice(0, 3); // Mostrar solo los próximos 3 turnos
+            
+          console.log('DEBUG - Próximos turnos filtrados:', proximosTurnos);
+          const container = document.getElementById("proximos-turnos");
+          
+          if (proximosTurnos.length === 0) {
+            console.log('DEBUG - No hay turnos próximos, mostrando mensaje');
+            container.innerHTML = `
+              <div class="flex items-center justify-center py-8">
+                <div class="text-center">
+                  <i class="fas fa-calendar-check text-gray-300 text-3xl mb-3"></i>
+                  <p class="text-gray-500 font-medium">No hay turnos próximos</p>
+                  <p class="text-gray-400 text-sm mt-1">Todos los turnos están completados</p>
+                </div>
+              </div>
+            `;
+            return;
+          }
+          
+          let html = '';
+          proximosTurnos.forEach((t, index) => {
+            const paciente = t.paciente || {};
+            const nombrePaciente = `${paciente.nombre || ''} ${paciente.apellido || ''}`.trim() || `DNI: ${t.dni_paciente}`;
+            
+            // Calcular tiempo hasta el turno
+            const fechaTurno = new Date(`${t.fecha}T${t.hora}`);
+            const tiempoRestante = fechaTurno - ahora;
+            const horasRestantes = Math.floor(tiempoRestante / (1000 * 60 * 60));
+            const minutosRestantes = Math.floor((tiempoRestante % (1000 * 60 * 60)) / (1000 * 60));
+            
+            let tiempoTexto = '';
+            if (horasRestantes > 0) {
+              tiempoTexto = `en ${horasRestantes}h ${minutosRestantes}m`;
+            } else if (minutosRestantes > 0) {
+              tiempoTexto = `en ${minutosRestantes} minutos`;
+            } else {
+              tiempoTexto = 'ahora';
+            }
+            
+            // Estado del turno
+            const estadoConfig = {
+              'sin atender': { color: 'yellow', icon: 'fas fa-clock', text: 'Pendiente' },
+              'pendiente': { color: 'yellow', icon: 'fas fa-clock', text: 'Pendiente' },
+              'sala de espera': { color: 'indigo', icon: 'fas fa-chair', text: 'En espera' }
+            };
+            
+            const estado = estadoConfig[t.estado] || estadoConfig['sin atender'];
+            
+            html += `
+              <div class="bg-white rounded-lg p-4 shadow-sm border border-gray-200 hover:shadow-md transition-shadow duration-200">
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center space-x-4">
+                    <div class="bg-${estado.color}-100 p-2 rounded-lg">
+                      <i class="${estado.icon} text-${estado.color}-600"></i>
+                    </div>
+                    <div>
+                      <h4 class="font-semibold text-gray-900">${nombrePaciente}</h4>
+                      <p class="text-sm text-gray-600">${t.fecha} a las ${t.hora}</p>
+                    </div>
+                  </div>
+                  <div class="text-right">
+                    <div class="text-sm font-medium text-${estado.color}-600">${estado.text}</div>
+                    <div class="text-xs text-gray-500">${tiempoTexto}</div>
+                  </div>
+                </div>
+              </div>
+            `;
+          });
+          
+          container.innerHTML = html;
+        })
+        .catch(error => {
+          console.error('DEBUG - Error en cargarProximosTurnos:', error);
+          document.getElementById("proximos-turnos").innerHTML = `
+            <div class="flex items-center justify-center py-8">
+              <div class="text-center">
+                <i class="fas fa-exclamation-triangle text-red-300 text-3xl mb-3"></i>
+                <p class="text-red-500 font-medium">Error al cargar turnos</p>
+                <p class="text-red-400 text-sm mt-1">${error.message}</p>
+                <p class="text-red-400 text-sm mt-1">Intenta recargar la página</p>
+              </div>
+            </div>
+          `;
+        });
+    }
+    
+    function toggleAgenda(){
+      console.log('DEBUG - toggleAgenda() llamada');
+      const container = document.getElementById("agenda-medico-container");
+      const btn = document.getElementById("toggle-agenda-btn");
+      const icon = btn.querySelector("i");
+      
+      console.log('DEBUG - Container:', container);
+      console.log('DEBUG - Container tiene clase hidden:', container.classList.contains("hidden"));
+      
+      if (container.classList.contains("hidden")) {
+        console.log('DEBUG - Mostrando agenda');
+        // Mostrar agenda
+        container.classList.remove("hidden");
+        icon.className = "fas fa-eye-slash";
+        btn.innerHTML = '<i class="fas fa-eye-slash"></i><span>Ocultar Agenda</span>';
+        btn.className = "bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg transition-colors flex items-center space-x-2";
+        
+        // Cargar agenda si hay fecha seleccionada
+        const fechaActual = document.getElementById("fecha-agenda-modal").value;
+        if (fechaActual) {
+          cargarAgendaHoy();
+        } else {
+          cargarAgendaHoy();
+        }
+      } else {
+        console.log('DEBUG - Ocultando agenda');
+        // Ocultar agenda
+        container.classList.add("hidden");
+        icon.className = "fas fa-eye";
+        btn.innerHTML = '<i class="fas fa-eye"></i><span>Mostrar Agenda</span>';
+        btn.className = "bg-primary hover:bg-red-700 text-white px-4 py-2 rounded-lg transition-colors flex items-center space-x-2";
+      }
+    }
+
+    function mostrarMiAgenda(){
+      console.log('DEBUG - mostrarMiAgenda() llamada');
+      
+      // Obtener información del usuario
+      fetch("/api/session-info")
+        .then(r => r.json())
+        .then(({usuario}) => {
+          console.log('DEBUG - Usuario obtenido:', usuario);
+          
+      // Mostrar agenda si está oculta
+      const container = document.getElementById("agenda-medico-container");
+          if (container.classList.contains("hidden")) {
+            container.classList.remove("hidden");
+            // Actualizar botón
+            const btn = document.getElementById("toggle-agenda-btn");
+            btn.innerHTML = '<i class="fas fa-eye-slash"></i><span>Ocultar Agenda</span>';
+            btn.className = "bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg transition-colors flex items-center space-x-2";
+          }
+          
+          // Establecer fecha de hoy si no hay fecha seleccionada
+          const fechaInput = document.getElementById("fecha-agenda-modal");
+          if (!fechaInput.value) {
+            const hoy = new Date().toISOString().split('T')[0];
+            fechaInput.value = hoy;
+          }
+          
+          // Cargar agenda del médico
+          cargarAgendaMedicoDirecto(usuario, fechaInput.value);
+      
+      // Hacer scroll suave hacia la agenda
+          setTimeout(() => {
+            container.scrollIntoView({ 
+              behavior: 'smooth',
+              block: 'start'
+            });
+          }, 300);
+        })
+        .catch(error => {
+          console.error('Error al obtener información del usuario:', error);
+          alert('Error al cargar la información del usuario');
+        });
+    }
+
+    function cargarAgendaMedicoDirecto(medico, fecha) {
+      console.log('DEBUG - cargarAgendaMedicoDirecto() llamada con médico:', medico, 'fecha:', fecha);
+      
+      const container = document.getElementById("agenda-content");
+      
+      // Mostrar indicador de carga
+      container.innerHTML = `
+        <div class="flex items-center justify-center p-8">
+          <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          <span class="ml-3 text-gray-600">Cargando agenda...</span>
+        </div>
+      `;
+      
+      // Cargar datos de agenda y turnos
+      Promise.all([
+        fetch("/api/agenda"),
+        fetch(`/api/turnos/dia?fecha=${fecha}`)
+      ])
+      .then(([agendaRes, turnosRes]) => {
+        console.log('DEBUG - Respuestas recibidas');
+        return Promise.all([agendaRes.json(), turnosRes.json()]);
+      })
+      .then(([agenda, turnos]) => {
+        console.log('DEBUG - Agenda completa:', agenda);
+        console.log('DEBUG - Turnos:', turnos);
+        
+        // Calcular día de la semana
+        const [anio, mes, dia] = fecha.split('-');
+        const fechaObj = new Date(Number(anio), Number(mes) - 1, Number(dia));
+        const diasSemana = ["DOMINGO", "LUNES", "MARTES", "MIERCOLES", "JUEVES", "VIERNES", "SABADO"];
+        const diaSeleccionado = diasSemana[fechaObj.getDay()];
+        const fechaFormateada = `${dia}/${mes}/${anio}`;
+        
+        console.log('DEBUG - Día calculado:', diaSeleccionado);
+        console.log('DEBUG - Fecha formateada:', fechaFormateada);
+        
+        // Filtrar turnos del médico
+        const turnosMedico = turnos.filter(t => t.medico === medico);
+        console.log('DEBUG - Turnos del médico:', turnosMedico);
+        
+        // Obtener horarios configurados
+        const horariosConfigurados = agenda[medico]?.[diaSeleccionado] || [];
+        console.log('DEBUG - Horarios configurados para', medico, 'en', diaSeleccionado, ':', horariosConfigurados);
+        
+        // Renderizar agenda
+        renderizarAgendaSimple(medico, diaSeleccionado, fechaFormateada, horariosConfigurados, turnosMedico, container);
+      })
+      .catch(error => {
+        console.error('Error al cargar agenda:', error);
+        container.innerHTML = `
+          <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+            <div class="flex items-center">
+              <i class="fas fa-exclamation-triangle text-red-600 mr-3"></i>
+              <div>
+                <h4 class="text-red-800 font-semibold">Error al cargar la agenda</h4>
+                <p class="text-red-700">${error.message}</p>
+              </div>
+            </div>
+          </div>
+        `;
+      });
+    }
+    
+    function renderizarAgendaSimple(medico, dia, fechaFormateada, horariosConfigurados, turnosMedico, container) {
+      console.log('DEBUG - renderizarAgendaSimple() llamada');
+      
+      if (horariosConfigurados.length === 0) {
+        container.innerHTML = `
+          <div class="bg-blue-50 border border-blue-200 rounded-lg p-6">
+            <div class="flex items-center">
+              <i class="fas fa-info-circle text-blue-600 mr-3 text-xl"></i>
+              <div>
+                <h4 class="text-blue-800 font-semibold text-lg">Sin horarios configurados</h4>
+                <p class="text-blue-700">No tienes horarios configurados para ${dia.toLowerCase()} (${fechaFormateada})</p>
+                <p class="text-blue-600 text-sm mt-2">Contacta a la secretaría para configurar tus horarios de atención.</p>
+              </div>
+            </div>
+          </div>
+        `;
+        return;
+      }
+      
+      let html = `
+        <div class="mb-6">
+          <h3 class="text-xl font-semibold text-gray-900 flex items-center mb-4">
+            <i class="fas fa-calendar-day text-primary mr-3"></i>
+            ${dia} - ${fechaFormateada}
+          </h3>
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      `;
+      
+      horariosConfigurados.forEach(hora => {
+        const turno = turnosMedico.find(t => t.hora === hora);
+        
+        if (turno) {
+          // Horario ocupado
+          const paciente = turno.paciente || {};
+          const nombrePaciente = `${paciente.nombre || ''} ${paciente.apellido || ''}`.trim() || `DNI: ${turno.dni_paciente}`;
+          const estadoColor = {
+            'sin atender': 'yellow',
+            'recepcionado': 'blue',
+            'sala de espera': 'indigo',
+            'llamado': 'purple',
+            'atendido': 'green',
+            'ausente': 'red'
+          }[turno.estado] || 'gray';
+          
+          const estadoEmoji = {
+            'sin atender': '⏳',
+            'recepcionado': '📋',
+            'sala de espera': '🪑',
+            'llamado': '📢',
+            'atendido': '✅',
+            'ausente': '❌'
+          }[turno.estado] || '⏳';
+          
+          html += `
+            <div class="bg-${estadoColor}-50 border border-${estadoColor}-200 rounded-lg p-4">
+              <div class="flex items-center justify-between mb-2">
+                <span class="font-semibold text-${estadoColor}-800">${hora}</span>
+                <span class="text-lg">${estadoEmoji}</span>
+              </div>
+              <div class="text-sm text-${estadoColor}-700">
+                <p class="font-medium">${nombrePaciente}</p>
+                <p class="capitalize">${turno.estado}</p>
+              </div>
+            </div>
+          `;
+        } else {
+          // Horario disponible
+          html += `
+            <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+              <div class="flex items-center justify-between mb-2">
+                <span class="font-semibold text-green-800">${hora}</span>
+                <span class="text-lg">✅</span>
+              </div>
+              <div class="text-sm text-green-700">
+                <p class="font-medium">Disponible</p>
+                <p>Sin turno asignado</p>
+              </div>
+            </div>
+          `;
+        }
+      });
+      
+      html += '</div></div>';
+      
+      console.log('DEBUG - HTML generado:', html);
+      container.innerHTML = html;
+      console.log('DEBUG - Contenido insertado en el container');
+    }
+
+    /* === Historias clínicas === */
+    function mostrarHistorias(lista){
+       historiasResultado = lista; // Guardar resultados para PDF
+      const res = document.getElementById("resultado");
+      res.innerHTML = "";
+      
+      // Mostrar estadísticas
+      const estadisticas = document.getElementById("estadisticas-busqueda");
+      if (lista.length > 0) {
+        const pacientesUnicos = new Set(lista.map(h => h.dni)).size;
+        document.getElementById("total-resultados").textContent = lista.length;
+        document.getElementById("pacientes-unicos").textContent = pacientesUnicos;
+        estadisticas.classList.remove("hidden");
+      } else {
+        estadisticas.classList.add("hidden");
+        res.innerHTML = `
+          <div class="alert alert-warning">
+            <i class="bi bi-exclamation-triangle"></i>
+            No se encontraron historias clínicas.
+          </div>
+        `;
+        return;
+      }
+       // Crear contenedor con título
+      const contenedor = document.createElement("div");
+      contenedor.className = "card";
+      contenedor.innerHTML = `
+        <div class="card-header bg-success text-white">
+          <h5 class="mb-0">
+            <i class="bi bi-file-medical"></i> 
+            Resultados de Búsqueda (${lista.length} historias encontradas)
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="row" id="historias-container"></div>
+        </div>
+      `;
+      res.appendChild(contenedor);
+      
+      const historiasContainer = document.getElementById("historias-container");
+      
+      // Cargar datos de pacientes para enriquecer las historias
+      fetch("/api/pacientes")
+        .then(r => r.json())
+        .then(pacientes => {
+          lista.forEach((h, index) => {
+            // Buscar datos del paciente
+            const paciente = pacientes.find(p => p.dni === h.dni);
+            const nombreCompleto = paciente ? `${paciente.nombre} ${paciente.apellido}`.trim() : 'Paciente no encontrado';
+            const fechaNac = paciente?.fecha_nacimiento ? new Date(paciente.fecha_nacimiento).toLocaleDateString('es-ES') : 'No especificada';
+            const edad = paciente?.edad ? `${paciente.edad} años` : 'No especificada';
+            const telefono = paciente?.celular || 'No especificado';
+            
+            const fecha = h.fecha_consulta ? new Date(h.fecha_consulta).toLocaleDateString('es-ES') : 'No especificada';
+            
+            const card = document.createElement("div");
+            card.className = "col-md-6 col-lg-4 mb-3";
+            card.innerHTML = `
+              <div class="card h-100 border-primary">
+                <div class="card-header bg-primary text-white">
+                  <div class="d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0">
+                      <i class="bi bi-person-circle"></i> 
+                      ${nombreCompleto}
+                    </h6>
+                    <button class="btn btn-sm btn-light" onclick="descargarHistoriaIndividual(${index})" title="Descargar PDF">
+                      <i class="bi bi-download"></i>
+                    </button>
+                  </div>
+                </div>
+                <div class="card-body">
+                  <div class="row mb-2">
+                    <div class="col-6">
+                      <small class="text-muted">DNI:</small><br>
+                      <strong>${h.dni}</strong>
+                    </div>
+                    <div class="col-6">
+                      <small class="text-muted">Edad:</small><br>
+                      <strong>${edad}</strong>
+                    </div>
+                  </div>
+                  <div class="row mb-2">
+                    <div class="col-6">
+                      <small class="text-muted">Fecha Nac:</small><br>
+                      <strong>${fechaNac}</strong>
+                    </div>
+                    <div class="col-6">
+                      <small class="text-muted">Teléfono:</small><br>
+                      <strong>${telefono}</strong>
+                    </div>
+                  </div>
+                  
+                  <div class="row mb-2">
+                    <div class="col-12">
+                      <small class="text-muted">Fecha Consulta:</small><br>
+                      <strong>${fecha}</strong>
+                    </div>
+                  </div>
+                  
+                  ${h.diagnostico ? `
+                    <div class="mb-2">
+                      <small class="text-muted">Diagnóstico:</small><br>
+                      <strong>${h.diagnostico}</strong>
+                    </div>
+                  ` : ''}
+                  
+                  ${h.tratamiento ? `
+                    <div class="mb-2">
+                      <small class="text-muted">Tratamiento:</small><br>
+                      <strong>${h.tratamiento}</strong>
+                    </div>
+                  ` : ''}
+                  
+                  ${h.observaciones ? `
+                    <div class="mb-2">
+                      <small class="text-muted">Observaciones:</small><br>
+                      <em>${h.observaciones}</em>
+                    </div>
+                  ` : ''}
+                  
+                  ${h.consulta_medica ? `
+                    <div class="mb-2">
+                      <small class="text-muted">Consulta Médica:</small><br>
+                      <em>${h.consulta_medica.substring(0, 100)}${h.consulta_medica.length > 100 ? '...' : ''}</em>
+                    </div>
+                  ` : ''}
+                  <div class="mt-2">
+                    <small class="text-muted">Médico:</small><br>
+                    <strong>${h.medico || 'No especificado'}</strong>
+                  </div>
+                </div>
+                <div class="card-footer">
+                  <button class="btn btn-sm btn-outline-primary" onclick="verHistoriaCompleta('${h.dni}')">
+                    <i class="bi bi-eye"></i> Ver Completa
+                  </button>
+                </div>
+              </div>
+            `;
+            historiasContainer.appendChild(card);
+          });
+        })
+        .catch(error => {
+          console.error("Error al cargar datos de pacientes:", error);
+          // Mostrar historias sin datos de pacientes si hay error
+          lista.forEach((h, index) => {
+            const fecha = h.fecha_consulta ? new Date(h.fecha_consulta).toLocaleDateString('es-ES') : 'No especificada';
+            
+            const card = document.createElement("div");
+            card.className = "col-md-6 col-lg-4 mb-3";
+            card.innerHTML = `
+              <div class="card h-100 border-warning">
+                <div class="card-header bg-warning text-dark">
+                  <div class="d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0">
+                      <i class="bi bi-exclamation-triangle"></i> 
+                      DNI: ${h.dni}
+                    </h6>
+                    <button class="btn btn-sm btn-dark" onclick="descargarHistoriaIndividual(${index})" title="Descargar PDF">
+                      <i class="bi bi-download"></i>
+                    </button>
+                  </div>
+                </div>
+                <div class="card-body">
+                  <div class="alert alert-warning">
+                    <small>No se pudieron cargar los datos del paciente</small>
+                  </div>
+                  
+                  <div class="mb-2">
+                    <small class="text-muted">Fecha Consulta:</small><br>
+                    <strong>${fecha}</strong>
+                  </div>
+                  
+                  ${h.diagnostico ? `
+                    <div class="mb-2">
+                      <small class="text-muted">Diagnóstico:</small><br>
+                      <strong>${h.diagnostico}</strong>
+                    </div>
+                  ` : ''}
+                  
+                  ${h.tratamiento ? `
+                    <div class="mb-2">
+                      <small class="text-muted">Tratamiento:</small><br>
+                      <strong>${h.tratamiento}</strong>
+                    </div>
+                  ` : ''}
+                   ${h.observaciones ? `
+                    <div class="mb-2">
+                      <small class="text-muted">Observaciones:</small><br>
+                      <em>${h.observaciones}</em>
+                    </div>
+                  ` : ''}
+                  
+                  ${h.consulta_medica ? `
+                    <div class="mb-2">
+                      <small class="text-muted">Consulta Médica:</small><br>
+                      <em>${h.consulta_medica.substring(0, 100)}${h.consulta_medica.length > 100 ? '...' : ''}</em>
+                    </div>
+                  ` : ''}
+                  
+                  <div class="mt-2">
+                    <small class="text-muted">Médico:</small><br>
+                    <strong>${h.medico || 'No especificado'}</strong>
+                  </div>
+                </div>
+                <div class="card-footer">
+                  <button class="btn btn-sm btn-outline-warning" onclick="verHistoriaCompleta('${h.dni}')">
+                    <i class="bi bi-eye"></i> Ver Completa
+                  </button>
+                </div>
+              </div>
+            `;
+            historiasContainer.appendChild(card);
+          });
+        });
+    }
+
+
+    function cargarHistorias(){
+      fetch("/api/historias")
+        .then(r=>r.json())
+        .then(mostrarHistorias)
+        .catch(()=>alert("Error al cargar historias"));
+    }
+
+
+    function buscarPorDNI(){
+      const dni=document.getElementById("dni_buscar").value.trim();
+      if(!dni) return alert("Ingrese un DNI");
+      fetch(`/historias/${dni}`)
+        .then(r=>r.json())
+        .then(h=> h.error ? alert("Historia no encontrada")
+                          : mostrarHistorias([h]));
+    }
+
+
+    function buscarPorApellido(){
+      const ape=document.getElementById("apellido_buscar").value.trim().toLowerCase();
+      if(!ape) return alert("Ingrese un apellido");
+      // Primero obtenemos los pacientes para filtrar por apellido
+      Promise.all([
+        fetch("/api/pacientes").then(r=>r.json()),
+        fetch("/api/historias").then(r=>r.json())
+      ])
+      .then(([pacientes, historias]) => {
+        // Filtrar pacientes por apellido
+        const pacientesFiltrados = pacientes.filter(p => 
+          p.apellido && p.apellido.toLowerCase().includes(ape)
+        );
+        
+        if (pacientesFiltrados.length === 0) {
+          return alert("No se encontraron pacientes con ese apellido");
+        }
+        
+        // Obtener DNIs de los pacientes filtrados
+        const dnisEncontrados = pacientesFiltrados.map(p => p.dni);
+        
+        // Filtrar historias clínicas de esos pacientes
+        const historiasFiltradas = historias.filter(h => 
+          dnisEncontrados.includes(h.dni)
+        );
+        
+        if (historiasFiltradas.length === 0) {
+          alert("Los pacientes encontrados no tienen historias clínicas registradas");
+        } else {
+          // Enriquecer historias con datos del paciente
+          const historiasEnriquecidas = historiasFiltradas.map(h => {
+            const paciente = pacientes.find(p => p.dni === h.dni);
+            return {
+              ...h,
+              nombre_paciente: paciente ? `${paciente.nombre} ${paciente.apellido}` : `DNI: ${h.dni}`
+            };
+          });
+          mostrarHistorias(historiasEnriquecidas);
+        }
+      })
+      .catch(error => {
+        console.error('Error en búsqueda por apellido:', error);
+        alert("Error al realizar la búsqueda");
+      });
+    }
+    function limpiarBusqueda(){
+      document.getElementById("dni_buscar").value = "";
+      document.getElementById("apellido_buscar").value = "";
+      document.getElementById("resultado").innerHTML = "";
+      document.getElementById("estadisticas-busqueda").classList.add("hidden");
+      historiasResultado = [];
+    }
+
+    function verHistoriaCompleta(dni){
+      window.location.href = `/historias?dni=${dni}`;
+    }
+
+    function descargarHistoriaIndividual(index){
+      const historia = historiasResultado[index];
+      if (!historia) return;
+
+      // Obtener datos del paciente
+      fetch("/api/pacientes")
+        .then(r => r.json())
+        .then(pacientes => {
+          const paciente = pacientes.find(p => p.dni === historia.dni);
+          const nombreCompleto = paciente ? `${paciente.nombre} ${paciente.apellido}`.trim() : 'Paciente no encontrado';
+          const fechaNac = paciente?.fecha_nacimiento ? new Date(paciente.fecha_nacimiento).toLocaleDateString('es-ES') : 'No especificada';
+          const edad = paciente?.edad ? `${paciente.edad} años` : 'No especificada';
+          const telefono = paciente?.celular || 'No especificado';
+          const obraSocial = paciente?.obra_social || 'No especificada';
+
+       const { jsPDF } = window.jspdf;
+          const doc = new jsPDF();
+          
+          // Configurar fuente y tamaños
+          doc.setFont("helvetica");
+          doc.setFontSize(20);
+          doc.text("Historia Clínica", 105, 20, { align: "center" });
+          
+          doc.setFontSize(12);
+          doc.text("Datos del Paciente:", 20, 40);
+          doc.setFontSize(10);
+          doc.text(`Nombre: ${nombreCompleto}`, 20, 50);
+          doc.text(`DNI: ${historia.dni}`, 20, 60);
+          doc.text(`Edad: ${edad}`, 20, 70);
+          doc.text(`Fecha de Nacimiento: ${fechaNac}`, 20, 80);
+          doc.text(`Teléfono: ${telefono}`, 20, 90);
+          doc.text(`Obra Social: ${obraSocial}`, 20, 100);
+          
+          doc.setFontSize(12);
+          doc.text("Datos de la Consulta:", 20, 120);
+          doc.setFontSize(10);
+          
+          const fecha = historia.fecha_consulta ? new Date(historia.fecha_consulta).toLocaleDateString('es-ES') : 'No especificada';
+          doc.text(`Fecha de Consulta: ${fecha}`, 20, 130);
+          doc.text(`Médico: ${historia.medico || 'No especificado'}`, 20, 140);
+          
+          let yPosition = 160;
+          
+          if (historia.diagnostico) {
+            doc.setFontSize(12);
+            doc.text("Diagnóstico:", 20, yPosition);
+            yPosition += 5;
+            doc.setFontSize(10);
+            const dxLines = doc.splitTextToSize(historia.diagnostico, 170);
+            doc.text(dxLines, 20, yPosition);
+            yPosition += dxLines.length * 5 + 5;
+          }
+          if (historia.tratamiento) {
+            doc.setFontSize(12);
+            doc.text("Tratamiento:", 20, yPosition);
+            yPosition += 5;
+            doc.setFontSize(10);
+            const txLines = doc.splitTextToSize(historia.tratamiento, 170);
+            doc.text(txLines, 20, yPosition);
+            yPosition += txLines.length * 5 + 5;
+          }
+          
+          if (historia.observaciones) {
+            doc.setFontSize(12);
+            doc.text("Observaciones:", 20, yPosition);
+            yPosition += 5;
+            doc.setFontSize(10);
+            const obsLines = doc.splitTextToSize(historia.observaciones, 170);
+            doc.text(obsLines, 20, yPosition);
+            yPosition += obsLines.length * 5 + 5;
+          }
+          
+          if (historia.consulta_medica) {
+            doc.setFontSize(12);
+            doc.text("Consulta Médica:", 20, yPosition);
+            yPosition += 5;
+            doc.setFontSize(10);
+            const consultaLines = doc.splitTextToSize(historia.consulta_medica, 170);
+            doc.text(consultaLines, 20, yPosition);
+          }
+          
+          // Guardar PDF
+          const fileName = `historia_${historia.dni}_${fecha.replace(/\//g, '-')}.pdf`;
+          doc.save(fileName);
+        })
+        .catch(error => {
+          console.error("Error al obtener datos del paciente:", error);
+          // Generar PDF sin datos del paciente si hay error
+          const { jsPDF } = window.jspdf;
+          const doc = new jsPDF();
+          
+          doc.setFont("helvetica");
+          doc.setFontSize(20);
+          doc.text("Historia Clínica", 105, 20, { align: "center" });
+          doc.setFontSize(12);
+          doc.text("Datos del Paciente:", 20, 40);
+          doc.setFontSize(10);
+          doc.text(`DNI: ${historia.dni}`, 20, 50);
+          doc.text(`Nombre: No disponible`, 20, 60);
+          
+          doc.setFontSize(12);
+          doc.text("Datos de la Consulta:", 20, 80);
+          doc.setFontSize(10);
+          
+          const fecha = historia.fecha_consulta ? new Date(historia.fecha_consulta).toLocaleDateString('es-ES') : 'No especificada';
+          doc.text(`Fecha de Consulta: ${fecha}`, 20, 90);
+          doc.text(`Médico: ${historia.medico || 'No especificado'}`, 20, 100);
+          
+          let yPosition = 120;
+          
+          if (historia.diagnostico) {
+            doc.setFontSize(12);
+            doc.text("Diagnóstico:", 20, yPosition);
+            yPosition += 5;
+            doc.setFontSize(10);
+            const dxLines = doc.splitTextToSize(historia.diagnostico, 170);
+            doc.text(dxLines, 20, yPosition);
+            yPosition += dxLines.length * 5 + 5;
+          }
+          
+          if (historia.tratamiento) {
+            doc.setFontSize(12);
+            doc.text("Tratamiento:", 20, yPosition);
+            yPosition += 5;
+            doc.setFontSize(10);
+            const txLines = doc.splitTextToSize(historia.tratamiento, 170);
+            doc.text(txLines, 20, yPosition);
+            yPosition += txLines.length * 5 + 5;
+          }
+          
+          if (historia.observaciones) {
+            doc.setFontSize(12);
+            doc.text("Observaciones:", 20, yPosition);
+            yPosition += 5;
+            doc.setFontSize(10);
+            const obsLines = doc.splitTextToSize(historia.observaciones, 170);
+            doc.text(obsLines, 20, yPosition);
+            yPosition += obsLines.length * 5 + 5;
+          }
+          if (historia.consulta_medica) {
+            doc.setFontSize(12);
+            doc.text("Consulta Médica:", 20, yPosition);
+            yPosition += 5;
+            doc.setFontSize(10);
+            const consultaLines = doc.splitTextToSize(historia.consulta_medica, 170);
+            doc.text(consultaLines, 20, yPosition);
+          }
+          
+          const fileName = `historia_${historia.dni}_${fecha.replace(/\//g, '-')}.pdf`;
+          doc.save(fileName);
+        });
+    
+    }
+
+    function descargarResultadosPDF(){
+      if (historiasResultado.length === 0) {
+        alert("No hay resultados para descargar");
+        return;
+      }
+
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+      
+      // Título
+      doc.setFont("helvetica");
+      doc.setFontSize(20);
+      doc.text("Reporte de Historias Clínicas", 105, 20, { align: "center" });
+      
+      doc.setFontSize(10);
+      doc.text(`Fecha de generación: ${new Date().toLocaleDateString('es-ES')}`, 20, 30);
+      doc.text(`Total de historias: ${historiasResultado.length}`, 20, 40);
+      doc.text(`Pacientes únicos: ${new Set(historiasResultado.map(h => h.dni)).size}`, 20, 50);
+      
+      // Historial de consultas
+      let yPosition = 70;
+      doc.setFontSize(14);
+      doc.text("Historias Clínicas:", 20, yPosition);
+      yPosition += 10;
+      historiasResultado.forEach((historia, index) => {
+        if (yPosition > 250) {
+          doc.addPage();
+          yPosition = 20;
+        }
+        
+        const fecha = historia.fecha_consulta ? new Date(historia.fecha_consulta).toLocaleDateString('es-ES') : 'No especificada';
+        doc.setFontSize(12);
+        doc.text(`${index + 1}. ${historia.nombre || 'Sin nombre'} (DNI: ${historia.dni}) - ${fecha}`, 20, yPosition);
+        yPosition += 5;
+        doc.setFontSize(10);
+        doc.text(`Médico: ${historia.medico || 'No especificado'}`, 20, yPosition);
+        yPosition += 5;
+        
+        if (historia.diagnostico) {
+          doc.text(`Diagnóstico: ${historia.diagnostico}`, 20, yPosition);
+          yPosition += 5;
+        }
+        
+        if (historia.tratamiento) {
+          doc.text(`Tratamiento: ${historia.tratamiento}`, 20, yPosition);
+          yPosition += 5;
+        }
+        
+        yPosition += 5; // Espacio entre historias
+      });
+      
+      // Guardar PDF
+      const fileName = `reporte_historias_${new Date().toISOString().split('T')[0]}.pdf`;
+      doc.save(fileName);
+    }
+
+
+    /* === Modal para crear historia clínica === */
+    function abrirModalHistoriaClinica() {
+      const dni = prompt("Ingrese el DNI del paciente para crear la historia clínica:");
+      if (dni && dni.trim()) {
+        window.location.href = `/historias?dni=${dni.trim()}`;
+      }
+    }
+
+    // Función para cargar estadísticas
+    async function cargarEstadisticas() {
+      try {
+        const [turnosRes, pacientesRes, usuariosRes] = await Promise.all([
+          fetch('/api/turnos'),
+          fetch('/api/pacientes'),
+          fetch('/api/usuarios')
+        ]);
+        
+        if (turnosRes.ok && pacientesRes.ok && usuariosRes.ok) {
+          const turnos = await turnosRes.json();
+          const pacientes = await pacientesRes.json();
+          const usuarios = await usuariosRes.json();
+          
+          // Calcular estadísticas
+          const hoy = new Date().toISOString().split('T')[0];
+          const turnosHoy = turnos.filter(t => t.fecha === hoy);
+          const enEspera = turnos.filter(t => t.estado === 'sala de espera');
+          const medicos = usuarios.filter(u => u.rol === 'medico');
+          
+          // Actualizar UI
+          document.getElementById('turnos-hoy').textContent = turnosHoy.length;
+          document.getElementById('total-pacientes').textContent = pacientes.length;
+          document.getElementById('total-medicos').textContent = medicos.length;
+          document.getElementById('en-espera').textContent = enEspera.length;
+        }
+      } catch (error) {
+        console.error('Error al cargar estadísticas:', error);
+      }
+    }
+
+    // Cargar estadísticas cuando se carga la página
+    document.addEventListener('DOMContentLoaded', function() {
+      console.log('🚀 DOM cargado, detectando rol del usuario...');
+      
+      // Detectar el rol del usuario y cargar el dashboard correspondiente
+      fetch('/api/session-info')
+        .then(response => response.json())
+        .then(data => {
+          console.log('👤 Usuario detectado:', data.usuario, 'Rol:', data.rol);
+          
+          if (data.rol === 'medico') {
+            console.log('🏥 Cargando dashboard del médico...');
+            cargarDashboardMedico();
+          } else if (data.rol === 'secretaria' || data.rol === 'administrador') {
+            console.log('📋 Cargando dashboard de la secretaría...');
+            cargarEstadisticas();
+            
+            // Actualizar estadísticas cada 30 segundos
+            setInterval(cargarEstadisticas, 30000);
+          } else {
+            console.log('❓ Rol desconocido:', data.rol);
+          }
+        })
+        .catch(error => {
+          console.error('❌ Error al detectar rol del usuario:', error);
+          // Fallback: cargar dashboard de secretaría por defecto
+          cargarEstadisticas();
+          setInterval(cargarEstadisticas, 30000);
+        });
+    });
+
+    /* === Funciones de Agenda del Médico === */
+    function abrirAgendaMedico() {
+      console.log('DEBUG - abrirAgendaMedico() llamada');
+      alert('DEBUG - Función abrirAgendaMedico() ejecutada');
+      
+      const modal = document.getElementById('modalAgendaMedico');
+      console.log('DEBUG - Modal encontrado:', modal);
+      
+      if (!modal) {
+        console.error('ERROR - No se encontró el modal modalAgendaMedico');
+        alert('Error: No se encontró el modal de agenda');
+        return;
+      }
+      
+      modal.classList.remove('hidden');
+      console.log('DEBUG - Modal mostrado');
+      
+      // Establecer fecha de hoy por defecto
+      const hoy = new Date().toISOString().split('T')[0];
+      console.log('DEBUG - Fecha de hoy:', hoy);
+      
+      const fechaInput = document.getElementById('fecha-agenda-modal');
+      console.log('DEBUG - Input de fecha encontrado:', fechaInput);
+      
+      if (fechaInput) {
+        fechaInput.value = hoy;
+        console.log('DEBUG - Fecha establecida en input');
+      } else {
+        console.error('ERROR - No se encontró el input fecha-agenda-modal');
+      }
+      
+      // Cargar agenda de hoy
+      console.log('DEBUG - Llamando cargarAgendaModal()');
+      cargarAgendaModal();
+    }
+
+    function cerrarModalAgenda() {
+      const modal = document.getElementById('modalAgendaMedico');
+      modal.classList.add('hidden');
+    }
+
+    function cargarAgendaHoy() {
+      console.log('DEBUG - cargarAgendaHoy() llamada');
+      try {
+        const hoy = new Date().toISOString().split('T')[0];
+        document.getElementById('fecha-agenda-modal').value = hoy;
+        console.log('DEBUG - Fecha establecida:', hoy);
+        // No llamar a cargarAgendaModal() para evitar errores
+        console.log('DEBUG - cargarAgendaHoy() completada exitosamente');
+      } catch (error) {
+        console.error('ERROR - Error en cargarAgendaHoy():', error);
+      }
+    }
+
+    function cargarAgendaModal() {
+      console.log('DEBUG - cargarAgendaModal() llamada');
+      
+      const fecha = document.getElementById('fecha-agenda-modal').value;
+      console.log('DEBUG - Fecha obtenida:', fecha);
+      
+      if (!fecha) {
+        console.log('DEBUG - No hay fecha seleccionada');
+        alert('Selecciona una fecha');
+        return;
+      }
+
+      const container = document.getElementById('contenido-agenda-modal');
+      console.log('DEBUG - Container encontrado:', container);
+      
+      if (!container) {
+        console.error('ERROR - No se encontró el container contenido-agenda-modal');
+        return;
+      }
+      
+      // Mostrar indicador de carga
+      container.innerHTML = `
+        <div class="flex items-center justify-center h-64">
+          <div class="text-center">
+            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+            <p class="text-gray-600">Cargando agenda...</p>
+          </div>
+        </div>
+      `;
+      console.log('DEBUG - Indicador de carga mostrado');
+
+      // Obtener información del usuario y cargar agenda
+      console.log('DEBUG - Llamando /api/session-info');
+      fetch("/api/session-info")
+        .then(r => {
+          console.log('DEBUG - Respuesta de session-info recibida:', r);
+          return r.json();
+        })
+        .then(({usuario}) => {
+          console.log('DEBUG - Usuario obtenido:', usuario);
+          cargarAgendaDelMedico(usuario, fecha, container);
+        })
+        .catch(error => {
+          console.error('Error al obtener información del usuario:', error);
+          container.innerHTML = `
+            <div class="flex items-center justify-center h-64">
+              <div class="text-center">
+                <i class="fas fa-exclamation-triangle text-red-500 text-4xl mb-4"></i>
+                <p class="text-red-600">Error al cargar la información del usuario</p>
+              </div>
+            </div>
+          `;
+        });
+    }
+
+    function cargarAgendaDelMedico(medico, fecha, container) {
+      console.log('DEBUG - cargarAgendaDelMedico() llamada con médico:', medico, 'fecha:', fecha);
+      
+      // Cargar datos de agenda y turnos
+      console.log('DEBUG - Llamando APIs de agenda y turnos');
+      Promise.all([
+        fetch("/api/agenda"),
+        fetch(`/api/turnos/dia?fecha=${fecha}`)
+      ])
+      .then(([agendaRes, turnosRes]) => {
+        console.log('DEBUG - Respuestas de APIs recibidas');
+        console.log('DEBUG - Agenda response status:', agendaRes.status);
+        console.log('DEBUG - Turnos response status:', turnosRes.status);
+        return Promise.all([agendaRes.json(), turnosRes.json()]);
+      })
+      .then(([agenda, turnos]) => {
+        console.log('DEBUG - Agenda recibida:', agenda);
+        console.log('DEBUG - Turnos recibidos:', turnos);
+        
+        // Calcular día de la semana
+        const [anio, mes, dia] = fecha.split('-');
+        const fechaObj = new Date(Number(anio), Number(mes) - 1, Number(dia));
+        const diasSemana = ["DOMINGO", "LUNES", "MARTES", "MIERCOLES", "JUEVES", "VIERNES", "SABADO"];
+        const diaSeleccionado = diasSemana[fechaObj.getDay()];
+        const fechaFormateada = `${dia}/${mes}/${anio}`;
+        
+        console.log('DEBUG - Día calculado:', diaSeleccionado);
+        console.log('DEBUG - Fecha formateada:', fechaFormateada);
+        
+        // Filtrar turnos del médico
+        const turnosMedico = turnos.filter(t => t.medico === medico);
+        console.log('DEBUG - Turnos del médico:', turnosMedico);
+        
+        // Obtener horarios configurados
+        const horariosConfigurados = agenda[medico]?.[diaSeleccionado] || [];
+        console.log('DEBUG - Horarios configurados para', medico, 'en', diaSeleccionado, ':', horariosConfigurados);
+        
+        // Renderizar agenda
+        console.log('DEBUG - Llamando renderizarAgendaModal()');
+        renderizarAgendaModal(medico, diaSeleccionado, fechaFormateada, horariosConfigurados, turnosMedico, container);
+      })
+      .catch(error => {
+        console.error('Error al cargar agenda:', error);
+        container.innerHTML = `
+          <div class="flex items-center justify-center h-64">
+            <div class="text-center">
+              <i class="fas fa-exclamation-triangle text-red-500 text-4xl mb-4"></i>
+              <p class="text-red-600">Error al cargar la agenda</p>
+              <p class="text-gray-500 text-sm mt-2">${error.message}</p>
+            </div>
+          </div>
+        `;
+      });
+    }
+
+    function renderizarAgendaModal(medico, dia, fechaFormateada, horariosConfigurados, turnosMedico, container) {
+        console.log('DEBUG - renderizarAgendaModal() llamada');
+      
+      if (horariosConfigurados.length === 0) {
+        console.log('DEBUG - No hay horarios configurados, mostrando mensaje');
+        container.innerHTML = `
+          <div class="bg-blue-50 border border-blue-200 rounded-lg p-6">
+            <div class="flex items-center">
+              <i class="fas fa-info-circle text-blue-600 mr-3 text-xl"></i>
+              <div>
+                <h4 class="text-blue-800 font-semibold text-lg">Sin horarios configurados</h4>
+                <p class="text-blue-700">No tienes horarios configurados para ${dia.toLowerCase()} (${fechaFormateada})</p>
+                <p class="text-blue-600 text-sm mt-2">Contacta a la secretaría para configurar tus horarios de atención.</p>
+              </div>
+            </div>
+          </div>
+        `;
+        return;
+      }
+      
+      
+      let html = `
+        <div class="mb-6">
+          <h3 class="text-xl font-semibold text-gray-900 flex items-center mb-4">
+            <i class="fas fa-calendar-day text-primary mr-3"></i>
+            ${dia} - ${fechaFormateada}
+          </h3>
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      `;
+      
+      horariosConfigurados.forEach(hora => {
+        const turno = turnosMedico.find(t => t.hora === hora);
+        
+        if (turno) {
+          // Horario ocupado
+          const paciente = turno.paciente || {};
+          const nombrePaciente = `${paciente.nombre || ''} ${paciente.apellido || ''}`.trim() || `DNI: ${turno.dni_paciente}`;
+          const estadoColor = {
+            'sin atender': 'yellow',
+            'recepcionado': 'blue',
+            'sala de espera': 'indigo',
+            'llamado': 'purple',
+            'atendido': 'green',
+            'ausente': 'red'
+          }[turno.estado] || 'gray';
+          
+          const estadoEmoji = {
+            'sin atender': '⏳',
+            'recepcionado': '📋',
+            'sala de espera': '🪑',
+            'llamado': '📢',
+            'atendido': '✅',
+            'ausente': '❌'
+          }[turno.estado] || '⏳';
+          
+          html += `
+            <div class="bg-${estadoColor}-50 border border-${estadoColor}-200 rounded-lg p-4">
+              <div class="flex items-center justify-between mb-2">
+                <span class="font-semibold text-${estadoColor}-800">${hora}</span>
+                <span class="text-lg">${estadoEmoji}</span>
+              </div>
+              <div class="text-sm text-${estadoColor}-700">
+                <p class="font-medium">${nombrePaciente}</p>
+                <p class="capitalize">${turno.estado}</p>
+              </div>
+            </div>
+          `;
+        } else {
+          // Horario disponible
+          html += `
+            <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+              <div class="flex items-center justify-between mb-2">
+                <span class="font-semibold text-green-800">${hora}</span>
+                <span class="text-lg">✅</span>
+              </div>
+              <div class="text-sm text-green-700">
+                <p class="font-medium">Disponible</p>
+                <p>Sin turno asignado</p>
+              </div>
+            </div>
+          `;
+        }
+      });
+      
+        html += '</div></div>';
+        container.innerHTML = html;
+    }
+
+  </script>
+
+  <!-- Footer -->
+  <footer class="bg-white border-t border-gray-200 mt-12">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <div class="text-center text-gray-600">
+        <p>&copy; 2025 Consultorio Colom-Bobbiesi. Desarrollado por <strong>Nicolas Fernandez</strong></p>
+        <p class="text-sm mt-1">Sistema de gestión de turnos y pacientes</p>
+      </div>
+    </div>
+  </footer>
+</body>
+</html>

@@ -1,0 +1,1913 @@
+<!DOCTYPE html> 
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gestión de Agenda - Consultorio</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#2563eb',
+            secondary: '#0891b2',
+            success: '#059669',
+            danger: '#dc2626',
+            warning: '#d97706',
+            info: '#7c3aed'
+          }
+        }
+      }
+    };
+  </script>
+  <style>
+    .calendar-day {
+      transition: all 0.2s ease;
+    }
+    .calendar-day:hover {
+      transform: scale(1.05);
+    }
+    .calendar-day.disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+      pointer-events: none;
+    }
+    .calendar-day.today {
+      background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+      color: white;
+    }
+    .calendar-day.selected {
+      background: linear-gradient(135deg, #059669, #047857);
+      color: white;
+    }
+    .calendar-day.has-appointments {
+      background: linear-gradient(135deg, #f59e0b, #d97706);
+      color: white;
+    }
+    .time-slot {
+      transition: all 0.2s ease;
+    }
+    .time-slot:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+  </style>
+</head>
+<body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen">
+  <!-- Header -->
+  <div class="bg-white shadow-lg border-b-4 border-primary">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center space-x-3">
+          <div class="bg-primary p-3 rounded-full">
+            <i class="fas fa-calendar-alt text-white text-xl"></i>
+    </div>
+    <div>
+            <h1 class="text-3xl font-bold text-gray-900">Gestión de Agenda</h1>
+            <p class="text-gray-600">Asignación y administración de turnos</p>
+          </div>
+        </div>
+        <div class="flex space-x-3">
+          <button onclick="refrescarDatos()" class="bg-blue-100 hover:bg-blue-200 text-blue-700 px-4 py-2 rounded-lg transition-colors duration-200 flex items-center space-x-2">
+            <i class="fas fa-sync-alt"></i>
+            <span>Refrescar</span>
+          </button>
+          <a href="/" class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg transition-colors duration-200 flex items-center space-x-2">
+            <i class="fas fa-arrow-left"></i>
+            <span>Volver al inicio</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    
+    <!-- Paso 1: Selección de Profesional -->
+    <div id="paso-profesional" class="mb-8">
+      <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <div class="flex items-center space-x-3 mb-6">
+          <div class="bg-primary p-2 rounded-lg">
+            <i class="fas fa-user-md text-white"></i>
+          </div>
+          <h2 class="text-xl font-semibold text-gray-900">1. Seleccionar Profesional</h2>
+  </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="profesionales-container">
+          <!-- Los profesionales se cargarán aquí dinámicamente -->
+        </div>
+    </div>
+  </div>
+
+    <!-- Paso 2: Selección de Fecha -->
+    <div id="paso-fecha" class="mb-8 hidden">
+      <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <div class="flex items-center justify-between mb-6">
+          <div class="flex items-center space-x-3">
+            <div class="bg-secondary p-2 rounded-lg">
+              <i class="fas fa-calendar text-white"></i>
+        </div>
+            <div>
+              <h2 class="text-xl font-semibold text-gray-900">2. Seleccionar Fecha</h2>
+              <p class="text-gray-600" id="profesional-seleccionado">Profesional: <span class="font-semibold"></span></p>
+      </div>
+    </div>
+          <button onclick="volverAPasoProfesional()" class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg transition-colors duration-200 flex items-center space-x-2">
+            <i class="fas fa-arrow-left"></i>
+            <span>Cambiar Profesional</span>
+          </button>
+          </div>
+        
+        <div class="flex justify-center">
+          <div class="bg-gray-50 rounded-xl p-6 w-full max-w-md">
+            <div class="flex items-center justify-between mb-4">
+              <button onclick="cambiarMes(-1)" class="p-2 hover:bg-gray-200 rounded-lg transition-colors">
+                <i class="fas fa-chevron-left text-gray-600"></i>
+              </button>
+              <h3 class="text-lg font-semibold text-gray-900" id="mes-actual"></h3>
+              <button onclick="cambiarMes(1)" class="p-2 hover:bg-gray-200 rounded-lg transition-colors">
+                <i class="fas fa-chevron-right text-gray-600"></i>
+              </button>
+        </div>
+            <div class="grid grid-cols-7 gap-1 mb-2">
+              <div class="text-center text-sm font-semibold text-gray-500 py-2">Dom</div>
+              <div class="text-center text-sm font-semibold text-gray-500 py-2">Lun</div>
+              <div class="text-center text-sm font-semibold text-gray-500 py-2">Mar</div>
+              <div class="text-center text-sm font-semibold text-gray-500 py-2">Mié</div>
+              <div class="text-center text-sm font-semibold text-gray-500 py-2">Jue</div>
+              <div class="text-center text-sm font-semibold text-gray-500 py-2">Vie</div>
+              <div class="text-center text-sm font-semibold text-gray-500 py-2">Sáb</div>
+      </div>
+            <div class="grid grid-cols-7 gap-1" id="calendario-dias">
+              <!-- Los días se generarán dinámicamente -->
+    </div>
+  </div>
+        </div>
+      </div>
+          </div>
+
+    <!-- Paso 3: Selección de Horario -->
+    <div id="paso-horario" class="mb-8 hidden">
+      <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <div class="flex items-center justify-between mb-6">
+          <div class="flex items-center space-x-3">
+            <div class="bg-success p-2 rounded-lg">
+              <i class="fas fa-clock text-white"></i>
+            </div>
+            <div>
+              <h2 class="text-xl font-semibold text-gray-900">3. Seleccionar Horario</h2>
+              <p class="text-gray-600" id="fecha-seleccionada-info">Fecha: <span class="font-semibold"></span></p>
+            </div>
+          </div>
+          <button onclick="volverAPasoFecha()" class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg transition-colors duration-200 flex items-center space-x-2">
+            <i class="fas fa-arrow-left"></i>
+            <span>Cambiar Fecha</span>
+              </button>
+        </div>
+        
+        <div id="horarios-container">
+          <!-- Los horarios se cargarán aquí dinámicamente -->
+                </div>
+                </div>
+            </div>
+
+    <!-- Resumen del Día -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+      <div class="flex items-center space-x-3 mb-4">
+        <div class="bg-info p-2 rounded-lg">
+          <i class="fas fa-chart-bar text-white"></i>
+                </div>
+        <h3 class="text-lg font-semibold text-gray-900">Resumen del Día</h3>
+                    </div>
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4" id="resumen-estadisticas">
+        <div class="bg-blue-50 rounded-lg p-4 text-center">
+          <div class="text-2xl font-bold text-blue-600" id="total-turnos">0</div>
+          <div class="text-sm text-blue-600">Total Turnos</div>
+                  </div>
+        <div class="bg-green-50 rounded-lg p-4 text-center">
+          <div class="text-2xl font-bold text-green-600" id="turnos-disponibles">0</div>
+          <div class="text-sm text-green-600">Disponibles</div>
+                    </div>
+        <div class="bg-red-50 rounded-lg p-4 text-center">
+          <div class="text-2xl font-bold text-red-600" id="turnos-ocupados">0</div>
+          <div class="text-sm text-red-600">Ocupados</div>
+                  </div>
+        <div class="bg-yellow-50 rounded-lg p-4 text-center">
+          <div class="text-2xl font-bold text-yellow-600" id="turnos-espera">0</div>
+          <div class="text-sm text-yellow-600">En Espera</div>
+                </div>
+                    </div>
+                  </div>
+                    </div>
+
+  <!-- Modal para Asignar Turno -->
+  <div id="modal-asignar-turno" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+    <div class="bg-white rounded-xl p-6 w-full max-w-md mx-4">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg font-semibold text-gray-900">Asignar Turno</h3>
+        <button onclick="cerrarModalAsignarTurno()" class="text-gray-400 hover:text-gray-600">
+          <i class="fas fa-times"></i>
+        </button>
+                  </div>
+      
+      <div class="mb-4">
+        <div class="bg-blue-50 border border-blue-200 rounded-lg p-3">
+          <div class="text-sm text-blue-800">
+            <strong>Profesional:</strong> <span id="modal-profesional"></span><br>
+            <strong>Fecha:</strong> <span id="modal-fecha"></span><br>
+            <strong>Hora:</strong> <span id="modal-hora"></span>
+                </div>
+                    </div>
+                  </div>
+
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Buscar Paciente</label>
+          <input type="text" id="buscar-paciente" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" placeholder="DNI, nombre o apellido...">
+          <div id="resultados-busqueda" class="mt-2 max-h-32 overflow-y-auto border border-gray-200 rounded-lg hidden">
+            <!-- Resultados de búsqueda -->
+                    </div>
+                  </div>
+
+        <div id="paciente-seleccionado" class="hidden">
+          <div class="bg-green-50 border border-green-200 rounded-lg p-3">
+            <div class="text-sm text-green-800">
+              <strong>Paciente seleccionado:</strong><br>
+              <span id="info-paciente-seleccionado"></span>
+                </div>
+                </div>
+                </div>
+
+        <div class="space-y-3">
+          <div class="flex space-x-3">
+            <button onclick="cerrarModalAsignarTurno()" class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg transition-colors">
+              Cancelar
+            </button>
+            <button onclick="asignarTurno()" id="btn-asignar" class="flex-1 bg-primary hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors" disabled>
+              <i class="fas fa-calendar-check mr-2"></i>Asignar Turno
+            </button>
+          </div>
+          <div class="text-center">
+            <span class="text-sm text-gray-500">¿No encuentras al paciente?</span>
+            <button onclick="mostrarModalRegistrarPaciente()" class="ml-2 text-primary hover:text-blue-700 text-sm font-medium underline">
+              Registrar Nuevo Paciente
+            </button>
+          </div>
+        </div>
+          </div>
+        </div>
+      </div>
+
+  <!-- Modal para Cancelar/Reagendar Turno -->
+  <div id="modal-gestion-turno" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+    <div class="bg-white rounded-xl p-6 w-full max-w-md mx-4">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg font-semibold text-gray-900">Gestionar Turno</h3>
+        <button onclick="cerrarModalGestionTurno()" class="text-gray-400 hover:text-gray-600">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      
+      <div class="mb-4">
+        <div class="bg-red-50 border border-red-200 rounded-lg p-3">
+          <div class="text-sm text-red-800">
+            <strong>Profesional:</strong> <span id="modal-gestion-profesional"></span><br>
+            <strong>Fecha:</strong> <span id="modal-gestion-fecha"></span><br>
+            <strong>Hora:</strong> <span id="modal-gestion-hora"></span><br>
+            <strong>Paciente:</strong> <span id="modal-gestion-paciente"></span>
+          </div>
+    </div>
+  </div>
+
+      <div class="space-y-3">
+        <button onclick="cancelarTurno()" class="w-full bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition-colors">
+          <i class="fas fa-times mr-2"></i>Cancelar Turno
+        </button>
+        <button onclick="reagendarTurno()" class="w-full bg-warning hover:bg-orange-600 text-white px-4 py-2 rounded-lg transition-colors">
+          <i class="fas fa-calendar-plus mr-2"></i>Reagendar Turno
+        </button>
+        <button onclick="cerrarModalGestionTurno()" class="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg transition-colors">
+          Cerrar
+        </button>
+  </div>
+    </div>
+  </div>
+
+  <!-- Modal para Registrar Nuevo Paciente -->
+  <div id="modal-registrar-paciente" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+    <div class="bg-white rounded-xl p-6 w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg font-semibold text-gray-900">Registrar Nuevo Paciente</h3>
+        <button onclick="cerrarModalRegistrarPaciente()" class="text-gray-400 hover:text-gray-600">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      
+      <div class="mb-4">
+        <div class="bg-green-50 border border-green-200 rounded-lg p-3">
+          <div class="text-sm text-green-800">
+            <strong>Turno:</strong> <span id="modal-registro-profesional"></span> - <span id="modal-registro-fecha"></span> a las <span id="modal-registro-hora"></span>
+          </div>
+        </div>
+      </div>
+
+      <form id="form-registrar-paciente">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">DNI *</label>
+            <input type="text" id="registro-dni" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" placeholder="12345678" maxlength="8" required>
+            <div id="error-dni" class="text-red-500 text-xs mt-1 hidden"></div>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Celular</label>
+            <input type="tel" id="registro-celular" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" placeholder="11-1234-5678">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Nombre *</label>
+            <input type="text" id="registro-nombre" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" placeholder="Juan" required>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Apellido *</label>
+            <input type="text" id="registro-apellido" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" placeholder="Pérez" required>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Fecha de Nacimiento</label>
+            <input type="date" id="registro-fecha-nacimiento" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Obra Social</label>
+            <input type="text" id="registro-obra-social" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" placeholder="OSDE, Swiss Medical, etc.">
+          </div>
+        </div>
+
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-gray-700 mb-2">Número de Obra Social</label>
+          <input type="text" id="registro-numero-obra-social" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" placeholder="123456789">
+        </div>
+      </form>
+
+      <div class="flex space-x-3">
+        <button onclick="cerrarModalRegistrarPaciente()" class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg transition-colors">
+          Cancelar
+        </button>
+        <button onclick="registrarYAsignarTurno()" id="btn-registrar-asignar" class="flex-1 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors">
+          <i class="fas fa-user-plus mr-2"></i>Registrar y Asignar Turno
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sección de Administración de Horarios -->
+  <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
+    <div class="flex items-center justify-between mb-6">
+      <div class="flex items-center space-x-3">
+        <div class="bg-purple-600 p-2 rounded-lg">
+          <i class="fas fa-user-md text-white"></i>
+        </div>
+        <div>
+          <h2 class="text-xl font-semibold text-gray-900">Administrar Horarios de Médicos</h2>
+          <p class="text-gray-600">Configurar horarios disponibles para cada profesional</p>
+        </div>
+      </div>
+      <button onclick="toggleAdministracionHorarios()" class="bg-purple-100 hover:bg-purple-200 text-purple-700 px-4 py-2 rounded-lg transition-colors duration-200 flex items-center space-x-2">
+        <i class="fas fa-cog"></i>
+        <span>Administrar</span>
+      </button>
+    </div>
+
+    <!-- Contenido de administración (oculto por defecto) -->
+    <div id="administracion-horarios" class="hidden">
+      <div class="mb-4">
+        <label class="block text-sm font-medium text-gray-700 mb-2">Seleccionar Médico</label>
+        <select id="medico-admin" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">
+          <option value="">Seleccione un médico...</option>
+        </select>
+      </div>
+
+      <div id="horarios-medico-admin" class="hidden">
+        <div class="mb-4">
+          <h3 class="text-lg font-semibold text-gray-900 mb-3">Horarios por Día</h3>
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <!-- Los días se generarán dinámicamente -->
+          </div>
+        </div>
+
+        <div class="flex space-x-3">
+          <button onclick="guardarHorariosMedico()" id="btn-guardar-horarios" class="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg transition-colors flex items-center space-x-2">
+            <i class="fas fa-save"></i>
+            <span>Guardar Horarios</span>
+          </button>
+          <button onclick="resetearHorariosMedico()" class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-6 py-2 rounded-lg transition-colors flex items-center space-x-2">
+            <i class="fas fa-undo"></i>
+            <span>Resetear</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal para Agregar Horarios -->
+  <div id="modal-agregar-horarios" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+    <div class="bg-white rounded-xl p-6 w-full max-w-md mx-4">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg font-semibold text-gray-900">Agregar Horarios</h3>
+        <button onclick="cerrarModalAgregarHorarios()" class="text-gray-400 hover:text-gray-600">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      
+      <div class="mb-4">
+        <div class="bg-blue-50 border border-blue-200 rounded-lg p-3">
+          <div class="text-sm text-blue-800">
+            <strong>Día:</strong> <span id="modal-dia-agregar"></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Tipo de entrada</label>
+          <select id="tipo-entrada" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" onchange="cambiarTipoEntrada()">
+            <option value="individual">Hora individual</option>
+            <option value="rango">Rango de horas</option>
+            <option value="multiples">Múltiples horarios</option>
+          </select>
+        </div>
+
+        <div id="entrada-individual" class="entrada-tipo">
+          <label class="block text-sm font-medium text-gray-700 mb-2">Hora (HH:MM)</label>
+          <input type="time" id="hora-individual" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" onchange="actualizarVistaPrevia()">
+        </div>
+
+        <div id="entrada-rango" class="entrada-tipo hidden">
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Desde</label>
+              <input type="time" id="hora-inicio" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" onchange="actualizarVistaPrevia()">
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Hasta</label>
+              <input type="time" id="hora-fin" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" onchange="actualizarVistaPrevia()">
+            </div>
+          </div>
+          <div class="mt-3">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Intervalo (minutos)</label>
+            <select id="intervalo" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" onchange="actualizarVistaPrevia()">
+              <option value="15">15 minutos</option>
+              <option value="30" selected>30 minutos</option>
+              <option value="60">60 minutos</option>
+            </select>
+          </div>
+        </div>
+
+        <div id="entrada-multiples" class="entrada-tipo hidden">
+          <label class="block text-sm font-medium text-gray-700 mb-2">Horarios (separados por comas)</label>
+          <input type="text" id="horarios-multiples" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" placeholder="09:00, 10:30, 12:00" oninput="actualizarVistaPrevia()">
+          <p class="text-xs text-gray-500 mt-1">Ejemplo: 09:00, 10:30, 12:00</p>
+        </div>
+
+        <div id="vista-previa" class="hidden">
+          <label class="block text-sm font-medium text-gray-700 mb-2">Vista previa</label>
+          <div id="horarios-preview" class="bg-gray-50 rounded-lg p-3 max-h-32 overflow-y-auto">
+            <!-- Los horarios se mostrarán aquí -->
+          </div>
+        </div>
+      </div>
+
+      <div class="flex space-x-3 mt-6">
+        <button onclick="cerrarModalAgregarHorarios()" class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg transition-colors">
+          Cancelar
+        </button>
+        <button onclick="confirmarAgregarHorarios()" id="btn-confirmar-horarios" class="flex-1 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors">
+          <i class="fas fa-plus mr-2"></i>Agregar Horarios
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="bg-white border-t border-gray-200 mt-12">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <div class="text-center text-gray-600">
+        <p>&copy; 2025 Consultorio Colom-Bobbiesi. Desarrollado por <strong>Nicolas Fernandez</strong></p>
+        <p class="text-sm mt-1">Sistema de gestión de turnos y pacientes</p>
+</div>
+    </div>
+  </footer>
+
+  <script>
+    console.log('DEBUG - Script iniciando...');
+    
+    // Variables globales
+    let profesionales = [];
+    let pacientes = [];
+    let agenda = {};
+    let turnos = [];
+    let profesionalSeleccionado = null;
+    let fechaSeleccionada = null;
+    
+    console.log('DEBUG - Variables declaradas');
+    
+    let horaSeleccionada = null;
+    let turnoSeleccionado = null;
+    let fechaActual = new Date();
+    let mesActual = fechaActual.getMonth();
+    let añoActual = fechaActual.getFullYear();
+
+    // CALENDARIO INTEGRADO - FUNCIONAL Y SIN RESTRICCIONES
+    function inicializarCalendario() {
+      console.log('DEBUG - inicializarCalendario() llamada');
+      renderCalendar();
+    }
+
+    function renderCalendar() {
+      console.log('DEBUG - renderCalendar() called');
+      const calendarGrid = document.getElementById('calendario-dias');
+      const currentMonthYear = document.getElementById('mes-actual');
+      
+      if (!calendarGrid || !currentMonthYear) {
+        console.error('DEBUG - Elementos del calendario no encontrados');
+        return;
+      }
+      
+      calendarGrid.innerHTML = ''; // Clear previous days
+
+      const monthNames = [
+        'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+        'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+      ];
+
+      currentMonthYear.textContent = `${monthNames[mesActual]} ${añoActual}`;
+
+      const firstDayOfMonth = new Date(añoActual, mesActual, 1).getDay();
+      const daysInMonth = new Date(añoActual, mesActual + 1, 0).getDate();
+
+      // Add empty divs for preceding days
+      for (let i = 0; i < firstDayOfMonth; i++) {
+        const emptyDiv = document.createElement('div');
+        calendarGrid.appendChild(emptyDiv);
+      }
+
+      // Add days of the month
+      for (let day = 1; day <= daysInMonth; day++) {
+        const date = new Date(añoActual, mesActual, day);
+        const dayElement = document.createElement('div');
+        dayElement.textContent = day;
+        dayElement.className = 'h-12 flex items-center justify-center cursor-pointer rounded-lg text-sm font-medium hover:bg-blue-100 transition-colors border border-gray-200 bg-white';
+
+        // Highlight current day
+        const today = new Date();
+        if (date.toDateString() === today.toDateString()) {
+          dayElement.classList.add('bg-blue-500', 'text-white', 'font-bold');
+        }
+
+        // Highlight selected date
+        if (fechaSeleccionada && date.toDateString() === new Date(fechaSeleccionada).toDateString()) {
+          dayElement.classList.add('bg-green-500', 'text-white', 'font-bold');
+        }
+
+        dayElement.addEventListener('click', () => {
+          console.log(`DEBUG - Day clicked: ${date.toISOString().split('T')[0]}`);
+          const fechaStr = date.toISOString().split('T')[0];
+          seleccionarFecha(fechaStr);
+        });
+        calendarGrid.appendChild(dayElement);
+      }
+      console.log('DEBUG - Calendar rendered for:', currentMonthYear.textContent);
+    }
+
+    function cambiarMes(direction) {
+      console.log('DEBUG - cambiarMes called with direction:', direction);
+      mesActual += direction;
+      if (mesActual < 0) {
+        mesActual = 11;
+        añoActual--;
+      } else if (mesActual > 11) {
+        mesActual = 0;
+        añoActual++;
+      }
+      renderCalendar();
+    }
+
+    // Inicialización
+    console.log('DEBUG - Antes de DOMContentLoaded');
+    document.addEventListener('DOMContentLoaded', function() {
+      console.log('DEBUG - DOM cargado, inicializando...');
+      console.log('DEBUG - Llamando cargarDatos()...');
+      cargarDatos();
+      console.log('DEBUG - Llamando inicializarCalendario()...');
+      try {
+        inicializarCalendario();
+        console.log('DEBUG - inicializarCalendario() ejecutado correctamente');
+      } catch (error) {
+        console.error('DEBUG - Error en inicializarCalendario():', error);
+      }
+      
+      // Validación de DNI en tiempo real
+      console.log('DEBUG - Agregando event listener para DNI...');
+      document.getElementById('registro-dni').addEventListener('input', validarDNIRegistro);
+      
+      // Detectar parámetro DNI en la URL para preseleccionar paciente
+      const urlParams = new URLSearchParams(window.location.search);
+      const dniParam = urlParams.get('dni');
+      if (dniParam) {
+        console.log('DEBUG - DNI detectado en URL:', dniParam);
+        // Esperar a que se carguen los datos para preseleccionar el paciente
+        setTimeout(() => {
+          preseleccionarPacientePorDNI(dniParam);
+        }, 1000);
+      }
+      
+      console.log('DEBUG - Inicialización completada');
+    });
+
+    // Función para preseleccionar paciente por DNI desde URL
+    function preseleccionarPacientePorDNI(dni) {
+      console.log('DEBUG - preseleccionarPacientePorDNI llamada con DNI:', dni);
+      
+      // Buscar el paciente en la lista cargada
+      const paciente = pacientes.find(p => p.dni === dni);
+      if (paciente) {
+        console.log('DEBUG - Paciente encontrado:', paciente);
+        
+        // Preseleccionar el paciente
+        window.pacienteSeleccionado = paciente;
+        document.getElementById('info-paciente-seleccionado').textContent = `${paciente.nombre} ${paciente.apellido} - DNI: ${paciente.dni}`;
+        
+        // Mostrar mensaje informativo
+        mostrarMensajeExito(`✅ Paciente ${paciente.nombre} ${paciente.apellido} preseleccionado. Selecciona un profesional y horario para asignar el turno.`);
+        
+        // Limpiar la URL para evitar problemas en futuras navegaciones
+        const url = new URL(window.location);
+        url.searchParams.delete('dni');
+        window.history.replaceState({}, '', url);
+        
+        console.log('DEBUG - Paciente preseleccionado exitosamente');
+      } else {
+        console.log('DEBUG - Paciente no encontrado con DNI:', dni);
+        mostrarMensajeError(`❌ No se encontró un paciente con DNI ${dni}. Verifica que el paciente esté registrado.`);
+      }
+    }
+
+    // Cargar datos desde la API
+    async function cargarDatos() {
+      console.log('DEBUG - cargarDatos() llamada');
+      try {
+        console.log('DEBUG - Haciendo fetch a las APIs...');
+        const [profesionalesRes, pacientesRes, agendaRes, turnosRes] = await Promise.all([
+          fetch('/api/usuarios'),
+          fetch('/api/pacientes'),
+          fetch('/api/agenda'),
+          fetch('/api/turnos')
+        ]);
+        console.log('DEBUG - APIs respondieron, procesando JSON...');
+
+        profesionales = await profesionalesRes.json();
+        pacientes = await pacientesRes.json();
+        agenda = await agendaRes.json();
+        turnos = await turnosRes.json();
+
+        console.log('DEBUG - Agenda cargada:', agenda);
+        console.log('DEBUG - Keys de agenda:', Object.keys(agenda));
+        console.log('DEBUG - Agenda de Julieta Colom:', agenda['Julieta Colom']);
+        console.log('DEBUG - Agenda de Marianela Bobbiesi:', agenda['Marianela Bobbiesi']);
+        
+        // Verificar si la agenda está vacía
+        if (Object.keys(agenda).length === 0) {
+          console.error('ERROR - La agenda está vacía!');
+        } else {
+          console.log('DEBUG - Agenda tiene datos, verificando estructura...');
+          Object.keys(agenda).forEach(medico => {
+            console.log(`DEBUG - Médico: ${medico}`, agenda[medico]);
+          });
+        }
+        
+        console.log('DEBUG - Llamando cargarProfesionales()...');
+
+        cargarProfesionales();
+        await actualizarResumen();
+      } catch (error) {
+        console.error('Error cargando datos:', error);
+      }
+    }
+
+    // Cargar profesionales en el paso 1
+    function cargarProfesionales() {
+      console.log('DEBUG - cargarProfesionales() llamada');
+      const container = document.getElementById('profesionales-container');
+      container.innerHTML = '';
+
+      const medicos = profesionales.filter(p => p.rol === 'medico');
+      
+      medicos.forEach(profesional => {
+        const card = document.createElement('div');
+        card.className = 'bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 rounded-xl p-4 cursor-pointer hover:shadow-lg transition-all duration-200 hover:scale-105';
+        card.onclick = () => seleccionarProfesional(profesional);
+        
+        card.innerHTML = `
+          <div class="flex items-center space-x-3">
+            <div class="bg-primary p-3 rounded-full">
+              <i class="fas fa-user-md text-white"></i>
+            </div>
+            <div>
+              <h3 class="font-semibold text-gray-900">Dr. ${profesional.usuario}</h3>
+              <p class="text-sm text-gray-600">Médico</p>
+            </div>
+          </div>
+        `;
+        
+        container.appendChild(card);
+      });
+    }
+
+    // Seleccionar profesional
+    function seleccionarProfesional(profesional) {
+      console.log('DEBUG - seleccionarProfesional llamada con:', profesional);
+      profesionalSeleccionado = profesional;
+      document.getElementById('profesional-seleccionado').querySelector('span').textContent = `Dr. ${profesional.usuario}`;
+      
+      document.getElementById('paso-profesional').classList.add('hidden');
+      document.getElementById('paso-fecha').classList.remove('hidden');
+      
+      console.log('DEBUG - Llamando actualizarCalendario()...');
+      actualizarCalendario();
+    }
+
+    // Volver al paso de profesionales
+    function volverAPasoProfesional() {
+      profesionalSeleccionado = null;
+      document.getElementById('paso-profesional').classList.remove('hidden');
+      document.getElementById('paso-fecha').classList.add('hidden');
+      document.getElementById('paso-horario').classList.add('hidden');
+    }
+
+    // Volver al paso de fecha
+    function volverAPasoFecha() {
+      fechaSeleccionada = null;
+      document.getElementById('paso-fecha').classList.remove('hidden');
+      document.getElementById('paso-horario').classList.add('hidden');
+    }
+
+
+    // Seleccionar fecha
+    async function seleccionarFecha(fecha) {
+      console.log('DEBUG - seleccionarFecha llamada con fecha:', fecha);
+      fechaSeleccionada = fecha;
+      // Crear la fecha correctamente para evitar problemas de zona horaria
+      const [año, mes, dia] = fecha.split('-');
+      const fechaObj = new Date(año, mes - 1, dia); // mes - 1 porque Date usa 0-11
+      const fechaFormateada = fechaObj.toLocaleDateString('es-ES', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
+      
+      console.log('DEBUG - Fecha formateada:', fechaFormateada);
+      
+      document.getElementById('fecha-seleccionada-info').querySelector('span').textContent = fechaFormateada;
+      
+      document.getElementById('paso-fecha').classList.add('hidden');
+      document.getElementById('paso-horario').classList.remove('hidden');
+      
+      cargarHorarios();
+      await actualizarResumen(); // Actualizar resumen con la nueva fecha seleccionada
+    }
+
+    // Cargar horarios para la fecha seleccionada
+    function cargarHorarios() {
+      if (!fechaSeleccionada) return;
+      
+      if (!profesionalSeleccionado) {
+        console.log('DEBUG - No hay profesional seleccionado, mostrando mensaje');
+        const container = document.getElementById('horarios-container');
+        container.innerHTML = `
+          <div class="text-center py-8">
+            <i class="fas fa-user-md text-gray-400 text-4xl mb-4"></i>
+            <p class="text-gray-500">Primero selecciona un profesional</p>
+          </div>
+        `;
+        return;
+      }
+      
+      const infoFecha = obtenerDiaSemana(fechaSeleccionada);
+      const diaSemana = infoFecha.nombreDia.toUpperCase(); // Cambiar a MAYÚSCULAS para coincidir con la DB
+      const horariosProfesional = agenda[profesionalSeleccionado.usuario]?.[diaSemana] || [];
+      
+      console.log('DEBUG - cargarHorarios llamada');
+      console.log('DEBUG - Profesional seleccionado:', profesionalSeleccionado.usuario);
+      console.log('DEBUG - Día de la semana:', diaSemana);
+      console.log('DEBUG - Horarios encontrados:', horariosProfesional);
+      
+      const container = document.getElementById('horarios-container');
+      container.innerHTML = '';
+      
+      if (horariosProfesional.length === 0) {
+        container.innerHTML = `
+          <div class="text-center py-8">
+            <i class="fas fa-calendar-times text-gray-400 text-4xl mb-4"></i>
+            <p class="text-gray-500">No hay horarios configurados para este día</p>
+        </div>
+      `;
+        return;
+      }
+      
+      const grid = document.createElement('div');
+      grid.className = 'grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3';
+      
+      horariosProfesional.forEach(hora => {
+        const turnoExistente = turnos.find(t => 
+          t.medico === profesionalSeleccionado.usuario && 
+          t.fecha_turno === fechaSeleccionada && 
+          t.hora_turno === hora
+        );
+        
+        const slot = document.createElement('div');
+        slot.className = 'time-slot p-3 rounded-lg border-2 text-center cursor-pointer';
+        
+        if (turnoExistente) {
+          const paciente = pacientes.find(p => p.dni === turnoExistente.dni_paciente);
+          const nombrePaciente = paciente ? `${paciente.nombre} ${paciente.apellido}` : turnoExistente.dni_paciente;
+          
+          slot.className += ' bg-red-50 border-red-300 text-red-800';
+          slot.innerHTML = `
+            <div class="font-semibold">${hora}</div>
+            <div class="text-xs mt-1">${nombrePaciente}</div>
+            <div class="text-xs">${turnoExistente.estado}</div>
+          `;
+          slot.onclick = () => gestionarTurno(turnoExistente);
+        } else {
+          slot.className += ' bg-green-50 border-green-300 text-green-800 hover:bg-green-100';
+          slot.innerHTML = `
+            <div class="font-semibold">${hora}</div>
+            <div class="text-xs mt-1">Disponible</div>
+          `;
+          slot.onclick = () => asignarTurnoAHora(hora);
+        }
+        
+        grid.appendChild(slot);
+      });
+      
+      container.appendChild(grid);
+    }
+
+    // Asignar turno a una hora específica
+    function asignarTurnoAHora(hora) {
+      horaSeleccionada = hora;
+      
+      document.getElementById('modal-profesional').textContent = `Dr. ${profesionalSeleccionado.usuario}`;
+      document.getElementById('modal-fecha').textContent = new Date(fechaSeleccionada).toLocaleDateString('es-ES');
+      document.getElementById('modal-hora').textContent = hora;
+      
+      document.getElementById('modal-asignar-turno').classList.remove('hidden');
+      
+      // Limpiar búsqueda anterior
+      document.getElementById('buscar-paciente').value = '';
+      document.getElementById('resultados-busqueda').classList.add('hidden');
+      
+      // Solo ocultar paciente seleccionado si no hay uno preseleccionado
+      if (!window.pacienteSeleccionado) {
+        document.getElementById('paciente-seleccionado').classList.add('hidden');
+        document.getElementById('btn-asignar').disabled = true;
+      } else {
+        // Si hay paciente preseleccionado, mantenerlo visible y habilitar botón
+        document.getElementById('paciente-seleccionado').classList.remove('hidden');
+        document.getElementById('btn-asignar').disabled = false;
+        console.log('DEBUG - Paciente preseleccionado mantenido:', window.pacienteSeleccionado);
+      }
+    }
+
+    // Buscar pacientes
+    document.getElementById('buscar-paciente').addEventListener('input', function() {
+      const query = this.value.toLowerCase();
+      const resultados = document.getElementById('resultados-busqueda');
+      
+      if (query.length < 2) {
+        resultados.classList.add('hidden');
+        return;
+      }
+      
+        const pacientesFiltrados = pacientes.filter(p => 
+        p.dni.toLowerCase().includes(query) ||
+        p.nombre.toLowerCase().includes(query) ||
+        p.apellido.toLowerCase().includes(query)
+      );
+      
+      if (pacientesFiltrados.length === 0) {
+        resultados.innerHTML = '<div class="p-3 text-gray-500 text-center">No se encontraron pacientes</div>';
+      } else {
+        resultados.innerHTML = pacientesFiltrados.slice(0, 5).map(p => `
+          <div class="p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0" onclick="seleccionarPaciente('${p.dni}')">
+            <div class="font-medium">${p.nombre} ${p.apellido}</div>
+            <div class="text-sm text-gray-600">DNI: ${p.dni}</div>
+          </div>
+        `).join('');
+      }
+      
+      resultados.classList.remove('hidden');
+    });
+
+    // Seleccionar paciente
+    function seleccionarPaciente(dni) {
+      const paciente = pacientes.find(p => p.dni === dni);
+      if (!paciente) return;
+      
+      document.getElementById('info-paciente-seleccionado').textContent = `${paciente.nombre} ${paciente.apellido} - DNI: ${paciente.dni}`;
+      document.getElementById('paciente-seleccionado').classList.remove('hidden');
+      document.getElementById('resultados-busqueda').classList.add('hidden');
+      document.getElementById('btn-asignar').disabled = false;
+      
+      // Guardar paciente seleccionado
+      window.pacienteSeleccionado = paciente;
+    }
+
+    // Asignar turno
+    async function asignarTurno() {
+      if (!window.pacienteSeleccionado) return;
+      
+      // Mostrar indicador de carga
+      const btnAsignar = document.getElementById('btn-asignar');
+      const textoOriginal = btnAsignar.textContent;
+      btnAsignar.disabled = true;
+      btnAsignar.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Asignando...';
+      
+      const turnoData = {
+        dni_paciente: window.pacienteSeleccionado.dni,
+        medico: profesionalSeleccionado.usuario,
+        hora: horaSeleccionada,
+        fecha: fechaSeleccionada,
+        estado: "pendiente"
+      };
+      
+      console.log('DEBUG - asignarTurno: Enviando datos:', turnoData);
+      
+      try {
+        const response = await fetch("/api/turnos", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(turnoData)
+        });
+        
+        console.log('DEBUG - asignarTurno: Response status:', response.status);
+        console.log('DEBUG - asignarTurno: Response ok:', response.ok);
+        console.log('DEBUG - asignarTurno: Response headers:', response.headers);
+        console.log('DEBUG - asignarTurno: Response status type:', typeof response.status);
+        console.log('DEBUG - asignarTurno: Response ok type:', typeof response.ok);
+        console.log('DEBUG - asignarTurno: Status === 201:', response.status === 201);
+        console.log('DEBUG - asignarTurno: Status >= 200 && status < 300:', response.status >= 200 && response.status < 300);
+        
+        const data = await response.json();
+        console.log('DEBUG - asignarTurno: Response data:', data);
+        
+        if (response.ok) {
+          console.log('DEBUG - asignarTurno: Éxito - cerrando modal y refrescando');
+          // Cerrar modal inmediatamente
+          cerrarModalAsignarTurno();
+          
+          // Limpiar preselección después de asignar exitosamente
+          window.pacienteSeleccionado = null;
+          document.getElementById('paciente-seleccionado').classList.add('hidden');
+          
+          // Mostrar mensaje de éxito con emoji
+          mostrarMensajeExito("✅ Turno asignado exitosamente");
+          
+          // Refrescar datos inmediatamente
+          await cargarDatos();
+          cargarHorarios();
+          await actualizarResumen();
+        } else {
+          console.log('DEBUG - asignarTurno: Error - status:', response.status, 'data:', data);
+          // Manejar diferentes tipos de errores
+          let mensajeError = "Error al asignar el turno";
+          
+          if (response.status === 503) {
+            mensajeError = "La base de datos está temporalmente ocupada. Por favor, intente nuevamente en unos segundos.";
+          } else if (data.error) {
+            mensajeError = data.error;
+          }
+          
+          alert(mensajeError);
+        }
+      } catch (error) {
+        console.error("DEBUG - asignarTurno: Error de conexión:", error);
+        alert("Error de conexión al asignar el turno. Por favor, verifique su conexión e intente nuevamente.");
+      } finally {
+        // Restaurar botón
+        btnAsignar.disabled = false;
+        btnAsignar.textContent = textoOriginal;
+      }
+    }
+
+    // Gestionar turno existente
+    function gestionarTurno(turno) {
+      turnoSeleccionado = turno;
+      const paciente = pacientes.find(p => p.dni === turno.dni_paciente);
+      const nombrePaciente = paciente ? `${paciente.nombre} ${paciente.apellido}` : turno.dni_paciente;
+      
+      document.getElementById('modal-gestion-profesional').textContent = `Dr. ${turno.medico}`;
+      document.getElementById('modal-gestion-fecha').textContent = new Date(turno.fecha_turno).toLocaleDateString('es-ES');
+      document.getElementById('modal-gestion-hora').textContent = turno.hora_turno;
+      document.getElementById('modal-gestion-paciente').textContent = nombrePaciente;
+      
+      document.getElementById('modal-gestion-turno').classList.remove('hidden');
+    }
+
+    // Cancelar turno
+    async function cancelarTurno() {
+      if (!turnoSeleccionado) return;
+      
+      if (!confirm('¿Estás seguro de que quieres cancelar este turno?')) return;
+      
+      try {
+        const response = await fetch(`/api/turnos/${turnoSeleccionado.id}`, {
+          method: "DELETE"
+        });
+        
+        if (response.ok) {
+          // Cerrar modal inmediatamente
+          cerrarModalGestionTurno();
+          
+          // Mostrar mensaje de éxito
+          mostrarMensajeExito("🗑️ Turno cancelado exitosamente");
+          
+          // Refrescar datos inmediatamente
+          await cargarDatos();
+          cargarHorarios();
+          await actualizarResumen();
+        } else {
+          alert("Error al cancelar el turno");
+        }
+      } catch (error) {
+        console.error("Error:", error);
+        alert("Error al cancelar el turno");
+      }
+    }
+
+    // Reagendar turno
+    function reagendarTurno() {
+      alert("Función de reagendar turno en desarrollo");
+      // Aquí se implementaría la lógica para reagendar
+    }
+
+    // Cerrar modales
+    function cerrarModalAsignarTurno() {
+      document.getElementById('modal-asignar-turno').classList.add('hidden');
+      // No limpiar window.pacienteSeleccionado aquí para mantener la preselección
+      // Solo limpiar la búsqueda
+      document.getElementById('buscar-paciente').value = '';
+      document.getElementById('resultados-busqueda').classList.add('hidden');
+    }
+
+    function cerrarModalGestionTurno() {
+      document.getElementById('modal-gestion-turno').classList.add('hidden');
+      turnoSeleccionado = null;
+    }
+
+    // Funciones para el modal de registrar paciente
+    function mostrarModalRegistrarPaciente() {
+      // Cerrar modal de asignar turno
+      cerrarModalAsignarTurno();
+      
+      // Llenar información del turno
+      document.getElementById('modal-registro-profesional').textContent = profesionalSeleccionado.usuario;
+      document.getElementById('modal-registro-fecha').textContent = new Date(fechaSeleccionada).toLocaleDateString('es-ES');
+      document.getElementById('modal-registro-hora').textContent = horaSeleccionada;
+      
+      // Limpiar formulario
+      document.getElementById('form-registrar-paciente').reset();
+      document.getElementById('error-dni').classList.add('hidden');
+      
+      // Mostrar modal
+      document.getElementById('modal-registrar-paciente').classList.remove('hidden');
+    }
+
+    function cerrarModalRegistrarPaciente() {
+      document.getElementById('modal-registrar-paciente').classList.add('hidden');
+    }
+
+    // Validar DNI en tiempo real
+    function validarDNIRegistro() {
+      const dni = document.getElementById('registro-dni').value;
+      const errorDiv = document.getElementById('error-dni');
+      
+      if (dni.length > 0 && (dni.length < 7 || dni.length > 8 || !/^\d+$/.test(dni))) {
+        errorDiv.textContent = 'El DNI debe tener entre 7 y 8 dígitos numéricos';
+        errorDiv.classList.remove('hidden');
+        return false;
+      } else {
+        errorDiv.classList.add('hidden');
+        return true;
+      }
+    }
+
+    // Registrar paciente y asignar turno
+    async function registrarYAsignarTurno() {
+      const btnRegistrar = document.getElementById('btn-registrar-asignar');
+      const textoOriginal = btnRegistrar.innerHTML;
+      
+      // Validar formulario
+      if (!validarDNIRegistro()) return;
+      
+      const form = document.getElementById('form-registrar-paciente');
+      if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+      }
+      
+      // Mostrar indicador de carga
+      btnRegistrar.disabled = true;
+      btnRegistrar.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Registrando...';
+      
+      const pacienteData = {
+        dni: document.getElementById('registro-dni').value,
+        nombre: document.getElementById('registro-nombre').value,
+        apellido: document.getElementById('registro-apellido').value,
+        fecha_nacimiento: document.getElementById('registro-fecha-nacimiento').value,
+        obra_social: document.getElementById('registro-obra-social').value,
+        numero_obra_social: document.getElementById('registro-numero-obra-social').value,
+        celular: document.getElementById('registro-celular').value
+      };
+      
+      try {
+        // Registrar paciente
+        const responsePaciente = await fetch("/api/pacientes", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(pacienteData)
+        });
+        
+        const dataPaciente = await responsePaciente.json();
+        
+        if (dataPaciente.success) {
+          // Asignar turno
+          const turnoData = {
+            dni_paciente: pacienteData.dni,
+            medico: profesionalSeleccionado.usuario,
+            hora: horaSeleccionada,
+            fecha: fechaSeleccionada,
+            estado: "sin atender"
+          };
+          
+          const responseTurno = await fetch("/api/turnos", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(turnoData)
+          });
+          
+          const dataTurno = await responseTurno.json();
+          
+          if (dataTurno.success) {
+            // Cerrar modal
+            cerrarModalRegistrarPaciente();
+            
+            // Mostrar mensaje de éxito
+            mostrarMensajeExito("✅ Paciente registrado y turno asignado exitosamente");
+            
+            // Refrescar datos
+            await cargarDatos();
+            cargarHorarios();
+            await actualizarResumen();
+          } else {
+            alert("Error al asignar el turno: " + (dataTurno.error || "Error desconocido"));
+          }
+        } else {
+          alert("Error al registrar el paciente: " + (dataPaciente.error || "Error desconocido"));
+        }
+      } catch (error) {
+        console.error("Error:", error);
+        alert("Error al registrar el paciente y asignar el turno");
+      } finally {
+        // Restaurar botón
+        btnRegistrar.disabled = false;
+        btnRegistrar.innerHTML = textoOriginal;
+      }
+    }
+
+    // Actualizar resumen
+    async function actualizarResumen() {
+      try {
+        // Usar la fecha seleccionada si existe, sino usar hoy
+        const fechaParaResumen = fechaSeleccionada || new Date().toISOString().split('T')[0];
+        
+        console.log('DEBUG - actualizarResumen: fechaParaResumen =', fechaParaResumen);
+        
+        // Obtener turnos específicos del día desde la API
+        const response = await fetch(`/api/turnos/dia?fecha=${fechaParaResumen}`);
+        if (!response.ok) {
+          throw new Error('Error al obtener turnos del día');
+        }
+        
+        const turnosFecha = await response.json();
+        console.log('DEBUG - actualizarResumen: turnosFecha =', turnosFecha);
+        
+        // Obtener horarios configurados para el día
+        let horariosConfigurados = 0;
+        if (profesionalSeleccionado && fechaSeleccionada) {
+          const infoFecha = obtenerDiaSemana(fechaSeleccionada);
+          const diaSemana = infoFecha.nombreDia.toUpperCase();
+          const agendaMedico = agenda[profesionalSeleccionado.usuario];
+          if (agendaMedico && agendaMedico[diaSemana]) {
+            horariosConfigurados = agendaMedico[diaSemana].length;
+          }
+        }
+        
+        // Calcular estadísticas correctas según la nueva lógica
+        const totalTurnos = turnosFecha.length; // Total de turnos asignados en el día
+        const turnosOcupados = turnosFecha.length; // Turnos que ya tienen paciente asignado
+        
+        // Contar horarios verdes (disponibles) reales
+        let turnosDisponibles = 0;
+        if (profesionalSeleccionado && fechaSeleccionada) {
+          const infoFecha = obtenerDiaSemana(fechaSeleccionada);
+          const diaSemana = infoFecha.nombreDia.toUpperCase();
+          const horariosProfesional = agenda[profesionalSeleccionado.usuario]?.[diaSemana] || [];
+          
+          // Contar horarios que NO tienen turno asignado (son los verdes)
+          horariosProfesional.forEach(hora => {
+            const turnoExistente = turnosFecha.find(t => 
+              t.medico === profesionalSeleccionado.usuario && 
+              t.fecha_turno === fechaParaResumen && 
+              t.hora_turno === hora
+            );
+            if (!turnoExistente) {
+              turnosDisponibles++;
+            }
+          });
+        }
+        
+        const turnosEspera = turnosFecha.filter(t => t.estado === 'sala de espera').length;
+        
+        console.log('DEBUG - actualizarResumen: horariosConfigurados =', horariosConfigurados);
+        console.log('DEBUG - actualizarResumen: totalTurnos =', totalTurnos);
+        console.log('DEBUG - actualizarResumen: turnosDisponibles =', turnosDisponibles);
+        console.log('DEBUG - actualizarResumen: turnosOcupados =', turnosOcupados);
+        console.log('DEBUG - actualizarResumen: turnosEspera =', turnosEspera);
+        
+        // Actualizar la interfaz
+        document.getElementById('total-turnos').textContent = totalTurnos;
+        document.getElementById('turnos-disponibles').textContent = turnosDisponibles;
+        document.getElementById('turnos-ocupados').textContent = turnosOcupados;
+        document.getElementById('turnos-espera').textContent = turnosEspera;
+        
+      } catch (error) {
+        console.error('Error al actualizar resumen:', error);
+        // En caso de error, mostrar ceros
+        document.getElementById('total-turnos').textContent = '0';
+        document.getElementById('turnos-disponibles').textContent = '0';
+        document.getElementById('turnos-ocupados').textContent = '0';
+        document.getElementById('turnos-espera').textContent = '0';
+      }
+    }
+
+    // Refrescar datos manualmente
+    async function refrescarDatos() {
+      const btnRefrescar = document.querySelector('button[onclick="refrescarDatos()"]');
+      const icono = btnRefrescar.querySelector('i');
+      const texto = btnRefrescar.querySelector('span');
+      
+      // Mostrar indicador de carga
+      icono.className = 'fas fa-spinner fa-spin';
+      texto.textContent = 'Refrescando...';
+      btnRefrescar.disabled = true;
+      
+      try {
+        await cargarDatos();
+        cargarHorarios();
+        await actualizarResumen();
+        mostrarMensajeExito("🔄 Datos actualizados");
+      } catch (error) {
+        console.error("Error al refrescar:", error);
+        alert("Error al refrescar los datos");
+      } finally {
+        // Restaurar botón
+        icono.className = 'fas fa-sync-alt';
+        texto.textContent = 'Refrescar';
+        btnRefrescar.disabled = false;
+      }
+    }
+
+    // Mostrar mensaje de éxito temporal
+    function mostrarMensajeExito(mensaje) {
+      // Crear elemento de mensaje
+      const mensajeDiv = document.createElement('div');
+      mensajeDiv.className = 'fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 transform transition-all duration-300';
+      mensajeDiv.style.transform = 'translateX(100%)';
+      mensajeDiv.innerHTML = `
+        <div class="flex items-center">
+          <span class="mr-2">${mensaje}</span>
+          <button onclick="this.parentElement.parentElement.remove()" class="ml-2 text-white hover:text-gray-200">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+      `;
+      
+      document.body.appendChild(mensajeDiv);
+      
+      // Animar entrada
+      setTimeout(() => {
+        mensajeDiv.style.transform = 'translateX(0)';
+      }, 100);
+      
+      // Auto-remover después de 3 segundos
+      setTimeout(() => {
+        mensajeDiv.style.transform = 'translateX(100%)';
+        setTimeout(() => {
+          if (mensajeDiv.parentElement) {
+            mensajeDiv.remove();
+          }
+        }, 300);
+      }, 3000);
+    }
+
+    // Mostrar mensaje de error temporal
+    function mostrarMensajeError(mensaje) {
+      // Crear elemento de mensaje
+      const mensajeDiv = document.createElement('div');
+      mensajeDiv.className = 'fixed top-4 right-4 bg-red-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 transform transition-all duration-300';
+      mensajeDiv.style.transform = 'translateX(100%)';
+      mensajeDiv.innerHTML = `
+        <div class="flex items-center">
+          <span class="mr-2">${mensaje}</span>
+          <button onclick="this.parentElement.parentElement.remove()" class="ml-2 text-white hover:text-gray-200">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+      `;
+      
+      document.body.appendChild(mensajeDiv);
+      
+      // Animar entrada
+      setTimeout(() => {
+        mensajeDiv.style.transform = 'translateX(0)';
+      }, 100);
+      
+      // Auto-remover después de 5 segundos (más tiempo para errores)
+      setTimeout(() => {
+        mensajeDiv.style.transform = 'translateX(100%)';
+        setTimeout(() => {
+          if (mensajeDiv.parentElement) {
+            mensajeDiv.remove();
+          }
+        }, 300);
+      }, 5000);
+    }
+
+    // Función auxiliar para obtener día de la semana
+    function obtenerDiaSemana(fecha) {
+      const dias = ['domingo', 'lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado'];
+      // Crear la fecha correctamente para evitar problemas de zona horaria
+      const [año, mes, dia] = fecha.split('-');
+      const fechaObj = new Date(año, mes - 1, dia); // mes - 1 porque Date usa 0-11
+      const diaNumero = fechaObj.getDay();
+      const nombreDia = dias[diaNumero];
+      console.log(`DEBUG - obtenerDiaSemana: fecha=${fecha}, diaNumero=${diaNumero}, nombreDia=${nombreDia}`);
+      return {
+        numero: diaNumero,
+        nombreDia: nombreDia
+      };
+    }
+
+    // Funciones para administración de horarios
+    function toggleAdministracionHorarios() {
+      const adminSection = document.getElementById('administracion-horarios');
+      const isHidden = adminSection.classList.contains('hidden');
+      
+      if (isHidden) {
+        adminSection.classList.remove('hidden');
+        cargarMedicosAdmin();
+      } else {
+        adminSection.classList.add('hidden');
+        document.getElementById('horarios-medico-admin').classList.add('hidden');
+      }
+    }
+
+    function cargarMedicosAdmin() {
+      const select = document.getElementById('medico-admin');
+      select.innerHTML = '<option value="">Seleccione un médico...</option>';
+      
+      profesionales.forEach(profesional => {
+        if (profesional.rol === 'medico') {
+          const option = document.createElement('option');
+          option.value = profesional.usuario;
+          option.textContent = `Dr. ${profesional.usuario}`;
+          select.appendChild(option);
+        }
+      });
+      
+      // Event listener para cuando se selecciona un médico
+      select.addEventListener('change', function() {
+        console.log('DEBUG - Select cambiado, valor:', this.value);
+        if (this.value) {
+          // Remover prefijo "Dr. " antes de llamar la función
+          const medicoSinPrefijo = this.value.replace(/^Dr\.\s*/, '');
+          console.log('DEBUG - Médico sin prefijo:', medicoSinPrefijo);
+          console.log('DEBUG - Llamando cargarHorariosMedicoAdmin...');
+          cargarHorariosMedicoAdmin(medicoSinPrefijo);
+        } else {
+          document.getElementById('horarios-medico-admin').classList.add('hidden');
+        }
+      });
+    }
+
+    function cargarHorariosMedicoAdmin(medico) {
+      console.log('DEBUG - cargarHorariosMedicoAdmin llamada con médico:', medico);
+      
+      const container = document.getElementById('horarios-medico-admin');
+      if (!container) {
+        console.error('ERROR - No se encontró el container horarios-medico-admin');
+        return;
+      }
+      
+      const gridContainer = container.querySelector('.grid');
+      if (!gridContainer) {
+        console.error('ERROR - No se encontró el grid container');
+        return;
+      }
+      
+      console.log('DEBUG - Agenda disponible:', agenda);
+      console.log('DEBUG - Agenda del médico:', agenda[medico]);
+      
+      // Limpiar contenido anterior
+      gridContainer.innerHTML = '';
+      
+      const diasSemana = [
+        { nombre: 'Lunes', clave: 'LUNES' },
+        { nombre: 'Martes', clave: 'MARTES' },
+        { nombre: 'Miércoles', clave: 'MIERCOLES' },
+        { nombre: 'Jueves', clave: 'JUEVES' },
+        { nombre: 'Viernes', clave: 'VIERNES' },
+        { nombre: 'Sábado', clave: 'SABADO' }
+      ];
+      
+      diasSemana.forEach(dia => {
+        const diaCard = document.createElement('div');
+        diaCard.className = 'bg-gray-50 rounded-lg p-4 border border-gray-200';
+        
+        const horariosMedico = agenda[medico] && agenda[medico][dia.clave] ? agenda[medico][dia.clave] : [];
+        console.log(`DEBUG - Horarios para ${dia.nombre} (${dia.clave}):`, horariosMedico);
+        
+        // Verificar si hay horarios
+        if (horariosMedico.length === 0) {
+          console.log(`DEBUG - No hay horarios para ${dia.nombre}`);
+        } else {
+          console.log(`DEBUG - Encontrados ${horariosMedico.length} horarios para ${dia.nombre}`);
+        }
+        
+        diaCard.innerHTML = `
+          <h4 class="font-semibold text-gray-900 mb-3">${dia.nombre}</h4>
+          <div class="space-y-2">
+            <div class="flex items-center justify-between">
+              <span class="text-sm text-gray-600">Horarios disponibles:</span>
+              <button onclick="agregarHorario('${dia.clave}')" class="text-green-600 hover:text-green-700 text-sm">
+                <i class="fas fa-plus"></i> Agregar
+              </button>
+            </div>
+            <div id="horarios-${dia.clave}" class="space-y-1">
+              ${generarHorariosHTML(dia.clave, horariosMedico)}
+            </div>
+          </div>
+        `;
+        
+        gridContainer.appendChild(diaCard);
+      });
+      
+      container.classList.remove('hidden');
+    }
+
+    function generarHorariosHTML(dia, horarios) {
+      console.log(`DEBUG - generarHorariosHTML llamada con día: ${dia}, horarios:`, horarios);
+      
+      if (!horarios || horarios.length === 0) {
+        console.log(`DEBUG - Sin horarios para ${dia}, retornando mensaje`);
+        return '<p class="text-sm text-gray-500 italic">Sin horarios configurados</p>';
+      }
+      
+      console.log(`DEBUG - Generando HTML para ${horarios.length} horarios de ${dia}`);
+      const html = horarios.map(hora => `
+        <div class="flex items-center justify-between bg-white rounded border border-gray-200 px-2 py-1">
+          <span class="text-sm">${hora}</span>
+          <button onclick="eliminarHorario('${dia}', '${hora}')" class="text-red-500 hover:text-red-700 text-xs">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+      `).join('');
+      
+      console.log(`DEBUG - HTML generado para ${dia}:`, html);
+      return html;
+    }
+
+    function agregarHorario(dia) {
+      // Mostrar modal de agregar horarios
+      document.getElementById('modal-dia-agregar').textContent = dia;
+      document.getElementById('modal-agregar-horarios').classList.remove('hidden');
+      
+      // Limpiar formulario
+      document.getElementById('hora-individual').value = '';
+      document.getElementById('hora-inicio').value = '';
+      document.getElementById('hora-fin').value = '';
+      document.getElementById('horarios-multiples').value = '';
+      document.getElementById('vista-previa').classList.add('hidden');
+      
+      // Mostrar entrada individual por defecto
+      cambiarTipoEntrada();
+    }
+
+    function cerrarModalAgregarHorarios() {
+      document.getElementById('modal-agregar-horarios').classList.add('hidden');
+    }
+
+    function cambiarTipoEntrada() {
+      const tipo = document.getElementById('tipo-entrada').value;
+      
+      // Ocultar todas las entradas
+      document.querySelectorAll('.entrada-tipo').forEach(el => {
+        el.classList.add('hidden');
+      });
+      
+      // Mostrar la entrada correspondiente
+      document.getElementById(`entrada-${tipo}`).classList.remove('hidden');
+      
+      // Ocultar vista previa
+      document.getElementById('vista-previa').classList.add('hidden');
+    }
+
+    function actualizarVistaPrevia() {
+      const tipo = document.getElementById('tipo-entrada').value;
+      let horarios = [];
+      
+      try {
+        switch (tipo) {
+          case 'individual':
+            const horaIndividual = document.getElementById('hora-individual').value;
+            if (horaIndividual) {
+              horarios = [horaIndividual];
+            }
+            break;
+            
+          case 'rango':
+            const inicio = document.getElementById('hora-inicio').value;
+            const fin = document.getElementById('hora-fin').value;
+            const intervalo = parseInt(document.getElementById('intervalo').value);
+            
+            if (inicio && fin) {
+              horarios = generarHorariosEnRangoConIntervalo(inicio, fin, intervalo);
+            }
+            break;
+            
+          case 'multiples':
+            const input = document.getElementById('horarios-multiples').value;
+            if (input) {
+              horarios = parsearHorarios(input);
+            }
+            break;
+        }
+        
+        mostrarVistaPrevia(horarios);
+      } catch (error) {
+        document.getElementById('vista-previa').classList.add('hidden');
+      }
+    }
+
+    function mostrarVistaPrevia(horarios) {
+      const preview = document.getElementById('horarios-preview');
+      
+      if (horarios.length === 0) {
+        preview.innerHTML = '<p class="text-gray-500 text-sm">No hay horarios para mostrar</p>';
+        document.getElementById('vista-previa').classList.add('hidden');
+        return;
+      }
+      
+      preview.innerHTML = horarios.map(hora => 
+        `<span class="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded mr-1 mb-1">${hora}</span>`
+      ).join('');
+      
+      document.getElementById('vista-previa').classList.remove('hidden');
+    }
+
+    function generarHorariosEnRangoConIntervalo(inicio, fin, intervalo) {
+      const horarios = [];
+      
+      const inicioMinutos = convertirAMinutos(inicio);
+      const finMinutos = convertirAMinutos(fin);
+      
+      if (inicioMinutos >= finMinutos) {
+        throw new Error('La hora de inicio debe ser anterior a la hora de fin');
+      }
+      
+      for (let minutos = inicioMinutos; minutos <= finMinutos; minutos += intervalo) {
+        horarios.push(convertirAHora(minutos));
+      }
+      
+      return horarios;
+    }
+
+    function confirmarAgregarHorarios() {
+      console.log('DEBUG - confirmarAgregarHorarios llamada');
+      
+      const tipo = document.getElementById('tipo-entrada').value;
+      const dia = document.getElementById('modal-dia-agregar').textContent;
+      let horarios = [];
+      
+      console.log('DEBUG - Tipo de entrada:', tipo);
+      console.log('DEBUG - Día seleccionado:', dia);
+      
+      try {
+        switch (tipo) {
+          case 'individual':
+            const horaIndividual = document.getElementById('hora-individual').value;
+            console.log('DEBUG - Hora individual:', horaIndividual);
+            if (!horaIndividual) {
+              alert('Seleccione una hora');
+              return;
+            }
+            horarios = [horaIndividual];
+            break;
+            
+          case 'rango':
+            const inicio = document.getElementById('hora-inicio').value;
+            const fin = document.getElementById('hora-fin').value;
+            const intervalo = parseInt(document.getElementById('intervalo').value);
+            
+            console.log('DEBUG - Rango - Inicio:', inicio, 'Fin:', fin, 'Intervalo:', intervalo);
+            
+            if (!inicio || !fin) {
+              alert('Complete las horas de inicio y fin');
+              return;
+            }
+            horarios = generarHorariosEnRangoConIntervalo(inicio, fin, intervalo);
+            break;
+            
+          case 'multiples':
+            const input = document.getElementById('horarios-multiples').value;
+            console.log('DEBUG - Input múltiples:', input);
+            if (!input.trim()) {
+              alert('Ingrese al menos un horario');
+              return;
+            }
+            horarios = parsearHorarios(input);
+            break;
+        }
+        
+        console.log('DEBUG - Horarios procesados:', horarios);
+        
+        if (horarios.length === 0) {
+          alert('No se pudieron procesar los horarios');
+          return;
+        }
+        
+        // Agregar horarios al día
+        console.log('DEBUG - Llamando agregarHorariosADia con día:', dia, 'horarios:', horarios);
+        agregarHorariosADia(dia, horarios);
+        
+        // Cerrar modal
+        cerrarModalAgregarHorarios();
+        
+      } catch (error) {
+        console.error('DEBUG - Error en confirmarAgregarHorarios:', error);
+        alert('Error al procesar los horarios: ' + error.message);
+      }
+    }
+
+    function agregarHorariosADia(dia, horarios) {
+      console.log('DEBUG - agregarHorariosADia llamada con día:', dia, 'horarios:', horarios);
+      
+      const container = document.getElementById(`horarios-${dia}`);
+      console.log('DEBUG - Container encontrado:', container);
+      
+      if (!container) {
+        console.error('DEBUG - No se encontró container para día:', dia);
+        alert('Error: No se encontró el contenedor para el día ' + dia);
+        return;
+      }
+      
+      // Verificar horarios existentes
+      const horariosExistentes = Array.from(container.querySelectorAll('.bg-white')).map(el => 
+        el.querySelector('span').textContent
+      );
+      console.log('DEBUG - Horarios existentes:', horariosExistentes);
+      
+      const nuevosHorarios = horarios.filter(hora => !horariosExistentes.includes(hora));
+      console.log('DEBUG - Nuevos horarios a agregar:', nuevosHorarios);
+      
+      if (nuevosHorarios.length === 0) {
+        alert('Todos los horarios ingresados ya están configurados');
+        return;
+      }
+      
+      // Agregar nuevos horarios
+      nuevosHorarios.forEach(hora => {
+        const nuevoHorario = document.createElement('div');
+        nuevoHorario.className = 'flex items-center justify-between bg-white rounded border border-gray-200 px-2 py-1';
+        nuevoHorario.innerHTML = `
+          <span class="text-sm">${hora}</span>
+          <button onclick="eliminarHorario('${dia}', '${hora}')" class="text-red-500 hover:text-red-700 text-xs">
+            <i class="fas fa-times"></i>
+          </button>
+        `;
+        container.appendChild(nuevoHorario);
+        console.log('DEBUG - Horario agregado al DOM:', hora);
+      });
+      
+      // Actualizar el estado interno
+      const medico = document.getElementById('medico-admin').value;
+      console.log('DEBUG - Médico seleccionado:', medico);
+      
+      if (!agenda[medico]) {
+        agenda[medico] = {};
+      }
+      if (!agenda[medico][dia]) {
+        agenda[medico][dia] = [];
+      }
+      
+      nuevosHorarios.forEach(hora => {
+        if (!agenda[medico][dia].includes(hora)) {
+          agenda[medico][dia].push(hora);
+        }
+      });
+      
+      agenda[medico][dia].sort();
+      console.log('DEBUG - Agenda actualizada:', agenda[medico][dia]);
+      
+      // Mostrar mensaje de éxito
+      mostrarMensajeExito(`✅ ${nuevosHorarios.length} horario(s) agregado(s) a ${dia}`);
+    }
+
+    function parsearHorarios(input) {
+      const horarios = [];
+      const partes = input.split(',').map(p => p.trim());
+      
+      for (const parte of partes) {
+        if (parte.includes('-')) {
+          // Es un rango
+          const [inicio, fin] = parte.split('-').map(h => h.trim());
+          
+          if (!validarFormatoHora(inicio) || !validarFormatoHora(fin)) {
+            throw new Error(`Formato de hora inválido en rango: ${parte}`);
+          }
+          
+          // Generar horarios en el rango
+          const horariosRango = generarHorariosEnRango(inicio, fin);
+          horarios.push(...horariosRango);
+        } else {
+          // Es una hora individual
+          if (!validarFormatoHora(parte)) {
+            throw new Error(`Formato de hora inválido: ${parte}`);
+          }
+          horarios.push(parte);
+        }
+      }
+      
+      // Eliminar duplicados y ordenar
+      return [...new Set(horarios)].sort();
+    }
+
+    function validarFormatoHora(hora) {
+      return /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/.test(hora);
+    }
+
+    function generarHorariosEnRango(inicio, fin) {
+      const horarios = [];
+      
+      // Convertir a minutos desde medianoche
+      const inicioMinutos = convertirAMinutos(inicio);
+      const finMinutos = convertirAMinutos(fin);
+      
+      if (inicioMinutos >= finMinutos) {
+        throw new Error('La hora de inicio debe ser anterior a la hora de fin');
+      }
+      
+      // Generar horarios cada 30 minutos por defecto
+      const intervalo = 30; // minutos
+      
+      for (let minutos = inicioMinutos; minutos <= finMinutos; minutos += intervalo) {
+        horarios.push(convertirAHora(minutos));
+      }
+      
+      return horarios;
+    }
+
+    function convertirAMinutos(hora) {
+      const [horas, minutos] = hora.split(':').map(Number);
+      return horas * 60 + minutos;
+    }
+
+    function convertirAHora(minutos) {
+      const horas = Math.floor(minutos / 60);
+      const mins = minutos % 60;
+      return `${horas.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
+    }
+
+    function eliminarHorario(dia, hora) {
+      if (confirm(`¿Está seguro de eliminar el horario ${hora} del ${dia}?`)) {
+        const container = document.getElementById(`horarios-${dia}`);
+        const horarioElement = Array.from(container.querySelectorAll('.bg-white')).find(el => 
+          el.querySelector('span').textContent === hora
+        );
+        
+        if (horarioElement) {
+          horarioElement.remove();
+          
+          // Actualizar el estado interno
+          const medico = document.getElementById('medico-admin').value;
+          if (agenda[medico] && agenda[medico][dia]) {
+            agenda[medico][dia] = agenda[medico][dia].filter(h => h !== hora);
+          }
+        }
+      }
+    }
+
+    async function guardarHorariosMedico() {
+      const medico = document.getElementById('medico-admin').value;
+      console.log('DEBUG - guardarHorariosMedico llamada con médico:', medico);
+      
+      if (!medico) {
+        alert('Seleccione un médico');
+        return;
+      }
+      
+      const btnGuardar = document.getElementById('btn-guardar-horarios');
+      const textoOriginal = btnGuardar.innerHTML;
+      
+      // Mostrar indicador de carga
+      btnGuardar.disabled = true;
+      btnGuardar.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Guardando...';
+      
+      try {
+        // Preparar datos para enviar
+        const horariosParaEnviar = {};
+        const diasSemana = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado'];
+        
+        diasSemana.forEach(dia => {
+          const diaKey = dia.toUpperCase(); // Convertir a mayúsculas para coincidir con los IDs
+          const container = document.getElementById(`horarios-${diaKey}`);
+          console.log(`DEBUG - Container para ${dia} (${diaKey}):`, container);
+          
+          if (container) {
+            const horarios = Array.from(container.querySelectorAll('.bg-white')).map(el => 
+              el.querySelector('span').textContent
+            );
+            horariosParaEnviar[dia] = horarios;
+            console.log(`DEBUG - Horarios para ${dia}:`, horarios);
+          } else {
+            console.log(`DEBUG - No se encontró container para ${dia} (${diaKey})`);
+            horariosParaEnviar[dia] = [];
+          }
+        });
+        
+        console.log('DEBUG - Datos a enviar:', horariosParaEnviar);
+        
+        // Enviar a la API
+        const response = await fetch(`/api/agenda/${medico}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(horariosParaEnviar)
+        });
+        
+        console.log('DEBUG - Response status:', response.status);
+        console.log('DEBUG - Response ok:', response.ok);
+        
+        if (response.ok) {
+          const result = await response.json();
+          console.log('DEBUG - Response data:', result);
+          mostrarMensajeExito("✅ Horarios guardados exitosamente");
+          // Recargar datos para sincronizar
+          await cargarDatos();
+          // Esperar un momento para asegurar que los datos se hayan actualizado
+          setTimeout(() => {
+            cargarHorariosMedicoAdmin(medico);
+          }, 100);
+        } else {
+          const errorText = await response.text();
+          console.error('DEBUG - Error response:', errorText);
+          alert('Error al guardar los horarios: ' + errorText);
+        }
+      } catch (error) {
+        console.error('DEBUG - Error en guardarHorariosMedico:', error);
+        alert('Error al guardar los horarios: ' + error.message);
+      } finally {
+        // Restaurar botón
+        btnGuardar.disabled = false;
+        btnGuardar.innerHTML = textoOriginal;
+      }
+    }
+
+    function resetearHorariosMedico() {
+      if (confirm('¿Está seguro de resetear todos los horarios del médico seleccionado?')) {
+        const medico = document.getElementById('medico-admin').value;
+        if (medico) {
+          cargarHorariosMedicoAdmin(medico);
+        }
+      }
+    }
+  </script>
+</body>
+</html>

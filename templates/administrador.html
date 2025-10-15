@@ -1,0 +1,1538 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel de Administración - Reportes Financieros</title>
+    <!-- Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #34495e;
+            --accent-color: #3498db;
+            --success-color: #27ae60;
+            --warning-color: #f39c12;
+            --danger-color: #e74c3c;
+            --light-bg: #ecf0f1;
+            --dark-text: #2c3e50;
+        }
+
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .admin-header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 2px solid var(--accent-color);
+            padding: 1rem 0;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .admin-title {
+            color: var(--primary-color);
+            font-weight: 700;
+            font-size: 2.5rem;
+            text-align: center;
+            margin: 0;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .admin-subtitle {
+            color: var(--secondary-color);
+            text-align: center;
+            font-size: 1.1rem;
+            margin-top: 0.5rem;
+            opacity: 0.8;
+        }
+
+        .main-container {
+            padding: 2rem 0;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 1.5rem;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--accent-color), var(--success-color));
+        }
+
+        .stat-card h3 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin: 0;
+            color: var(--primary-color);
+        }
+
+        .stat-card h6 {
+            color: var(--secondary-color);
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-card .icon {
+            font-size: 3rem;
+            opacity: 0.3;
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+        }
+
+        .report-section {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .section-title {
+            color: var(--primary-color);
+            font-weight: 700;
+            font-size: 1.8rem;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-admin {
+            background: linear-gradient(135deg, var(--accent-color), #2980b9);
+            border: none;
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 10px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin: 0.25rem;
+        }
+
+        .btn-admin:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(52, 152, 219, 0.3);
+            color: white;
+        }
+
+        .btn-success-admin {
+            background: linear-gradient(135deg, var(--success-color), #229954);
+        }
+
+        .btn-warning-admin {
+            background: linear-gradient(135deg, var(--warning-color), #e67e22);
+        }
+
+        .btn-danger-admin {
+            background: linear-gradient(135deg, var(--danger-color), #c0392b);
+        }
+
+        .table-container {
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin-top: 1rem;
+        }
+
+        .table {
+            margin-bottom: 0;
+        }
+
+        .table th {
+            background: var(--light-bg);
+            border: none;
+            font-weight: 600;
+            color: var(--dark-text);
+        }
+
+        .table td {
+            border: none;
+            border-bottom: 1px solid #dee2e6;
+            vertical-align: middle;
+        }
+
+        .form-control, .form-select {
+            border-radius: 10px;
+            border: 2px solid #e9ecef;
+            padding: 0.75rem;
+            transition: all 0.3s ease;
+        }
+
+        .form-control:focus, .form-select:focus {
+            border-color: var(--accent-color);
+            box-shadow: 0 0 0 0.2rem rgba(52, 152, 219, 0.25);
+        }
+        .logout-btn {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            background: rgba(231, 76, 60, 0.9);
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 25px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .logout-btn:hover {
+            background: var(--danger-color);
+            color: white;
+            transform: scale(1.05);
+        }
+
+        .user-info {
+            position: fixed;
+            top: 1rem;
+            left: 1rem;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 0.5rem 1rem;
+            border-radius: 25px;
+            font-weight: 600;
+            color: var(--primary-color);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 2rem;
+        }
+
+        .spinner-border {
+            width: 3rem;
+            height: 3rem;
+        }
+
+        @media (max-width: 768px) {
+            .admin-title {
+                font-size: 2rem;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .stat-card h3 {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Header -->
+    <div class="admin-header">
+        <div class="container">
+            <h1 class="admin-title">
+                <i class="bi bi-graph-up-arrow"></i>
+                Panel de Administración
+            </h1>
+            <p class="admin-subtitle">Reportes Financieros y Gestión de Datos</p>
+        </div>
+    </div>
+
+    <!-- User Info -->
+    <div class="user-info">
+        <i class="bi bi-person-circle"></i>
+        <span id="usuario-actual">Administrador</span>
+    </div>
+
+    <!-- Logout Button -->
+    <a href="/logout" class="logout-btn">
+        <i class="bi bi-box-arrow-right"></i>
+        Cerrar Sesión
+    </a>
+    <!-- Main Container -->
+    <div class="main-container">
+        <div class="container">
+            <!-- Stats Overview -->
+            <div class="row g-3 mb-3">
+                <div class="col-12 col-md-6 col-lg-3">
+                    <div class="stat-card border-start border-4" style="border-left-color: #3498db;">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-1">Ingresos del Mes</h6>
+                            <h3 class="mb-0" id="total-mes">$0</h3>
+                            <small class="text-muted">Total recaudado</small>
+                        </div>
+                        <i class="bi bi-cash-stack icon text-primary"></i>
+                    </div>
+                    </div>
+                </div>
+
+                <div class="col-12 col-md-6 col-lg-3">
+                    <div class="stat-card border-start border-4" style="border-left-color: #27ae60;">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-1">Consultas del Mes</h6>
+                            <h3 class="mb-0" id="total-consultas">0</h3>
+                            <small class="text-muted">Total atendidas</small>
+                        </div>
+                        <i class="bi bi-people icon text-success"></i>
+                    </div>
+                    </div>
+                </div>
+
+                <div class="col-12 col-md-6 col-lg-3">
+                    <div class="stat-card border-start border-4" style="border-left-color: #f39c12;">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-1">Pagos Particulares</h6>
+                            <h3 class="mb-0" id="pagos-particulares">0</h3>
+                            <small class="text-muted">Sin obra social</small>
+                        </div>
+                        <i class="bi bi-person-check icon text-warning"></i>
+                    </div>
+                    </div>
+                </div>
+
+                <div class="col-12 col-md-6 col-lg-3">
+                    <div class="stat-card border-start border-4" style="border-left-color: #9b59b6;">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-1">Obra Social</h6>
+                            <h3 class="mb-0" id="pagos-obra-social">0</h3>
+                            <small class="text-muted">Con cobertura</small>
+                        </div>
+                        <i class="bi bi-shield-check icon text-purple"></i>
+                    </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Payment Type Statistics -->
+            <div class="row g-3 mb-3">
+                <div class="col-12 col-md-6 col-lg-3">
+                    <div class="stat-card border-start border-4" style="border-left-color: #28a745;">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-1">Pagos en Efectivo</h6>
+                            <h3 class="mb-0" id="total-efectivo">$0</h3>
+                            <small class="text-muted" id="cantidad-efectivo">0 pagos</small>
+                        </div>
+                        <i class="bi bi-cash icon text-success"></i>
+                    </div>
+                    </div>
+                </div>
+
+                <div class="col-12 col-md-6 col-lg-3">
+                    <div class="stat-card border-start border-4" style="border-left-color: #17a2b8;">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-1">Transferencias</h6>
+                            <h3 class="mb-0" id="total-transferencia">$0</h3>
+                            <small class="text-muted" id="cantidad-transferencia">0 pagos</small>
+                        </div>
+                        <i class="bi bi-bank icon text-info"></i>
+                    </div>
+                    </div>
+                </div>
+
+                <div class="col-12 col-md-6 col-lg-3">
+                    <div class="stat-card border-start border-4" style="border-left-color: #6f42c1;">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-1">Obra Social</h6>
+                            <h3 class="mb-0" id="total-obra-social">$0</h3>
+                            <small class="text-muted" id="cantidad-obra-social">0 consultas</small>
+                        </div>
+                        <i class="bi bi-shield-check icon text-purple"></i>
+                    </div>
+                    </div>
+                </div>
+
+                <div class="col-12 col-md-6 col-lg-3">
+                    <div class="stat-card border-start border-4" style="border-left-color: #fd7e14;">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-1">Total Recaudado</h6>
+                            <h3 class="mb-0" id="total-recaudado">$0</h3>
+                            <small class="text-muted">Efectivo + Transferencias</small>
+                        </div>
+                        <i class="bi bi-calculator icon text-warning"></i>
+                    </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Reports Section -->
+            <div class="report-section">
+                <h2 class="section-title">
+                    <i class="bi bi-graph-up"></i>
+                    Reporte de Ingresos Mensuales
+                </h2>
+                <!-- Month Selector -->
+                <div class="row mb-4">
+                    <div class="col-md-4">
+                        <label for="mes-selector" class="form-label">Seleccionar Mes</label>
+                        <input type="month" id="mes-selector" class="form-control" onchange="cargarIngresosMes()">
+                    </div>
+                    <div class="col-md-8">
+                        <div class="d-flex gap-2 mt-4">
+                            <button class="btn-admin" onclick="cargarIngresosMes()">
+                                <i class="bi bi-arrow-clockwise"></i>
+                                Actualizar
+                            </button>
+                            <button class="btn-admin btn-success-admin" onclick="exportarIngresosMesCSV()">
+                                <i class="bi bi-download"></i>
+                                Exportar CSV
+                            </button>
+                            <button class="btn-admin btn-warning-admin" onclick="mesActual()">
+                                <i class="bi bi-calendar-today"></i>
+                                Mes Actual
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Loading -->
+                <div class="loading" id="loading">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Cargando...</span>
+                    </div>
+                    <p class="mt-2">Cargando reporte...</p>
+                </div>
+
+                <!-- Daily Breakdown -->
+                <div class="table-container" id="tabla-container" style="display: none;">
+                    <h6 class="mb-3">
+                        <i class="bi bi-calendar-range"></i>
+                        Desglose Diario del Mes
+                    </h6>
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Fecha</th>
+                                    <th>Día</th>
+                                    <th>Cantidad</th>
+                                    <th>Ingresos</th>
+                                    <th>Ver Detalle</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tabla-ingresos-diarios">
+                                <!-- Se cargan dinámicamente -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Daily Detail -->
+                <div class="table-container mt-3" id="detalle-dia" style="display: none;">
+                    <h6 class="mb-2" id="titulo-detalle-dia">Detalle del Día</h6>
+                    <button class="btn-admin btn-danger-admin" onclick="cerrarDetalleDia()">
+                        <i class="bi bi-x"></i>
+                        Cerrar
+                    </button>
+                    <div class="table-responsive mt-3">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Paciente</th>
+                                    <th>Monto</th>
+                                    <th>Obra Social</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tabla-detalle-dia">
+                                <!-- Se cargan dinámicamente -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+             </div>
+
+            <!-- Quick Actions -->
+            <div class="report-section">
+                <h2 class="section-title">
+                    <i class="bi bi-lightning"></i>
+                    Acciones Rápidas
+                </h2>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="d-grid gap-2">
+                            <button class="btn-admin" onclick="generarReporteAnual()">
+                                <i class="bi bi-calendar-year"></i>
+                                Reporte Anual
+                            </button>
+                            <button class="btn-admin btn-success-admin" onclick="generarReporteMensual()">
+                                <i class="bi bi-calendar-month"></i>
+                                Reporte Mensual
+                            </button>
+                            <a class="btn-admin" href="/descargar-db" target="_blank">
+                                <i class="bi bi-download"></i>
+                                Descargar Base de Datos
+                            </a>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="d-grid gap-2">
+                            <button class="btn-admin btn-warning-admin" onclick="generarReporteSemanal()">
+                                <i class="bi bi-calendar-week"></i>
+                                Reporte Semanal
+                            </button>
+                            <button class="btn-admin btn-danger-admin" onclick="generarReporteDiario()">
+                                <i class="bi bi-calendar-day"></i>
+                                Reporte Diario
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Reportes Adicionales -->
+            <div class="report-section">
+                <h2 class="section-title">
+                    <i class="bi bi-graph-up"></i>
+                    Reportes Avanzados
+                </h2>
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="card h-100">
+                            <div class="card-body text-center">
+                                <i class="bi bi-people-fill text-primary" style="font-size: 2rem;"></i>
+                                <h5 class="card-title mt-3">Reporte de Pacientes</h5>
+                                <p class="card-text">Análisis demográfico y estadísticas de pacientes registrados</p>
+                                <button class="btn btn-primary" onclick="mostrarReportePacientes()">
+                                    <i class="bi bi-eye"></i> Ver Reporte
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card h-100">
+                            <div class="card-body text-center">
+                                <i class="bi bi-calendar2-check text-success" style="font-size: 2rem;"></i>
+                                <h5 class="card-title mt-3">Ocupación de Agenda</h5>
+                                <p class="card-text">Análisis de ocupación y disponibilidad por médico</p>
+                                <button class="btn btn-success" onclick="mostrarReporteOcupacion()">
+                                    <i class="bi bi-eye"></i> Ver Reporte
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card h-100">
+                            <div class="card-body text-center">
+                                <i class="bi bi-bar-chart-line text-warning" style="font-size: 2rem;"></i>
+                                <h5 class="card-title mt-3">Dashboard Ejecutivo</h5>
+                                <p class="card-text">Resumen ejecutivo con métricas clave del consultorio</p>
+                                <button class="btn btn-warning" onclick="mostrarDashboardEjecutivo()">
+                                    <i class="bi bi-eye"></i> Ver Dashboard
+                                </button>
+                            </div>
+                            </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Reportes Personalizados -->
+            <div class="report-section">
+                <h2 class="section-title">
+                    <i class="bi bi-gear"></i>
+                    Reportes Personalizados
+                </h2>
+                <div class="card">
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="fecha-inicio-custom" class="form-label">Fecha Inicio</label>
+                                    <input type="date" class="form-control" id="fecha-inicio-custom">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="fecha-fin-custom" class="form-label">Fecha Fin</label>
+                                    <input type="date" class="form-control" id="fecha-fin-custom">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="medico-filtro" class="form-label">Filtrar por Médico (Opcional)</label>
+                                    <select class="form-select" id="medico-filtro">
+                                        <option value="">Todos los médicos</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="obra-social-filtro" class="form-label">Filtrar por Obra Social (Opcional)</label>
+                                    <input type="text" class="form-control" id="obra-social-filtro" placeholder="Ej: OSDE">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="text-center">
+                            <button class="btn btn-primary btn-lg" onclick="generarReportePersonalizado()">
+                                <i class="bi bi-graph-up"></i> Reporte Turnos/Ocupación/Pacientes
+                            </button>
+                            <button class="btn btn-success btn-lg" onclick="generarReporteAtenciones()">
+                                <i class="bi bi-people"></i> Reporte de Atenciones por Médico
+                            </button>
+                            <button class="btn btn-outline-primary btn-lg" onclick="exportarReporteAtencionesCSV()">
+                                <i class="bi bi-download"></i> Descargar CSV Atenciones
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>  
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-white border-top mt-4">
+        <div class="container py-3 text-center text-muted">
+            <div>
+                <small>© 2025 Consultorio Colom-Bobbiesi — Panel de Administración</small>
+            </div>
+            <div>
+                <small>Desarrollado por <strong>Nicolas Fernandez</strong></small>
+            </div>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Cargar información del usuario
+        document.addEventListener('DOMContentLoaded', function() {
+            cargarInfoUsuario();
+            // Configurar mes actual por defecto
+            const hoy = new Date();
+            const mesActual = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}`;
+            document.getElementById('mes-selector').value = mesActual;
+            cargarIngresosMes();
+            
+            cargarMedicosParaFiltros();
+            
+            // Configurar fechas por defecto para reportes personalizados
+            const fechaHoy = hoy.toISOString().split('T')[0];
+            const fechaInicioMes = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}-01`;
+            document.getElementById('fecha-inicio-custom').value = fechaInicioMes;
+            document.getElementById('fecha-fin-custom').value = fechaHoy;
+        });
+
+        // Cargar lista de médicos para filtros
+        async function cargarMedicosParaFiltros() {
+            try {
+                const response = await fetch('/api/agenda');
+                const agenda = await response.json();
+                
+                const medicoSelect = document.getElementById('medico-filtro');
+                medicoSelect.innerHTML = '<option value="">Todos los médicos</option>';
+                
+                Object.keys(agenda).forEach(medico => {
+                    const option = document.createElement('option');
+                    option.value = medico;
+                    option.textContent = medico;
+                    medicoSelect.appendChild(option);
+                });
+                
+            } catch (error) {
+                console.error('Error al cargar médicos:', error);
+            }
+        }
+
+        async function cargarInfoUsuario() {
+            try {
+                const response = await fetch('/api/session-info');
+                const data = await response.json();
+                document.getElementById('usuario-actual').textContent = data.usuario;
+            } catch (error) {
+                console.error('Error cargando información del usuario:', error);
+            }
+        }
+
+        function mostrarLoading(mostrar) {
+            document.getElementById('loading').style.display = mostrar ? 'block' : 'none';
+            document.getElementById('tabla-container').style.display = mostrar ? 'none' : 'block';
+        }
+
+        function mesActual() {
+            const hoy = new Date();
+            const mesActual = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}`;
+            document.getElementById('mes-selector').value = mesActual;
+            cargarIngresosMes();
+        }
+        async function cargarIngresosMes() {
+            const mesSeleccionado = document.getElementById('mes-selector').value;
+            if (!mesSeleccionado) {
+                alert('Por favor seleccione un mes');
+                return;
+            }
+            
+            mostrarLoading(true);
+            
+            try {
+                const response = await fetch(`/api/pagos/estadisticas-admin?mes=${mesSeleccionado}`);
+                const estadisticas = await response.json();
+                
+                // Actualizar estadísticas principales
+                document.getElementById('total-mes').textContent = `$${estadisticas.total_mes}`;
+                document.getElementById('total-consultas').textContent = estadisticas.cantidad_pagos_mes;
+                document.getElementById('pagos-particulares').textContent = estadisticas.pagos_particulares;
+                document.getElementById('pagos-obra-social').textContent = estadisticas.pagos_obra_social;
+                
+                // Actualizar estadísticas por tipo de pago
+                document.getElementById('total-efectivo').textContent = `$${estadisticas.total_efectivo || 0}`;
+                document.getElementById('total-transferencia').textContent = `$${estadisticas.total_transferencia || 0}`;
+                document.getElementById('total-obra-social').textContent = `$${estadisticas.total_obra_social || 0}`;
+                document.getElementById('total-recaudado').textContent = `$${(estadisticas.total_efectivo || 0) + (estadisticas.total_transferencia || 0)}`;
+                
+                document.getElementById('cantidad-efectivo').textContent = `${estadisticas.pagos_efectivo || 0} pagos`;
+                document.getElementById('cantidad-transferencia').textContent = `${estadisticas.pagos_transferencia || 0} pagos`;
+                document.getElementById('cantidad-obra-social').textContent = `${estadisticas.pagos_obra_social_count || 0} consultas`;
+                
+
+                // Cargar tabla de ingresos diarios
+                cargarTablaIngresosDiarios(estadisticas.detalle_por_dia);
+                
+            } catch (error) {
+                console.error('Error cargando ingresos del mes:', error);
+                alert('Error al cargar los ingresos del mes');
+            } finally {
+                mostrarLoading(false);
+            }
+        }
+
+        function cargarTablaIngresosDiarios(detallePorDia) {
+            const tbody = document.getElementById('tabla-ingresos-diarios');
+            tbody.innerHTML = '';
+            
+            if (Object.keys(detallePorDia).length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">No hay ingresos registrados para este mes</td></tr>';
+                return;
+            }
+            Object.entries(detallePorDia).forEach(([fecha, datos]) => {
+                const fechaObj = new Date(fecha + 'T00:00:00');
+                const nombreDia = fechaObj.toLocaleDateString('es-ES', { weekday: 'long' });
+                const fechaFormateada = fechaObj.toLocaleDateString('es-ES');
+                
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td><strong>${fechaFormateada}</strong></td>
+                    <td class="text-capitalize">${nombreDia}</td>
+                    <td><span class="badge bg-primary">${datos.cantidad}</span></td>
+                    <td><strong class="text-success">$${datos.monto}</strong></td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-info" onclick="mostrarDetalleDia('${fecha}', '${fechaFormateada}')">
+                            <i class="bi bi-eye"></i> Ver
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        function mostrarDetalleDia(fecha, fechaFormateada) {
+            console.log('Función mostrarDetalleDia llamada con:', { fecha, fechaFormateada });
+            
+            // Usar la API específica del administrador
+            fetch(`/api/pagos/estadisticas-admin?mes=${fecha.substring(0, 7)}`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(estadisticas => {
+                    const datosDia = estadisticas.detalle_por_dia[fecha];
+                    if (!datosDia) {
+                        alert('No hay datos para esta fecha');
+                        return;
+                    }
+                    
+                    // Actualizar título
+                    document.getElementById('titulo-detalle-dia').textContent = `Detalle del ${fechaFormateada}`;
+                    
+                    // Limpiar tabla
+                    const tbody = document.getElementById('tabla-detalle-dia');
+                    tbody.innerHTML = '';
+                    
+                    // Agregar filas de pacientes
+                    datosDia.pacientes.forEach(paciente => {
+                        const row = document.createElement('tr');
+                        const montoTexto = paciente.monto === 0 ? 'Obra Social' : `$${paciente.monto}`;
+                        const montoColor = paciente.monto === 0 ? 'text-info' : 'text-success';
+                        
+                        // Determinar tipo de pago y su badge
+                        let tipoPagoBadge = '';
+                        if (paciente.monto === 0) {
+                            tipoPagoBadge = '<span class="badge bg-success">Obra Social</span>';
+                        } else {
+                            const tipoPago = paciente.tipo_pago || 'efectivo';
+                            const badgeClass = tipoPago === 'efectivo' ? 'bg-primary' : 'bg-info';
+                            const badgeText = tipoPago === 'efectivo' ? 'Efectivo' : 'Transferencia';
+                            tipoPagoBadge = `<span class="badge ${badgeClass}">${badgeText}</span>`;
+                        }
+
+                        row.innerHTML = `
+                            <td>${paciente.nombre}</td>
+                            <td class="${montoColor}"><strong>${montoTexto}</strong></td>
+                            <td>${paciente.obra_social || '-'}</td>
+                        `;
+                        tbody.appendChild(row);
+                    });
+                    
+                    // Mostrar sección de detalle
+                    document.getElementById('detalle-dia').style.display = 'block';
+                    document.getElementById('detalle-dia').scrollIntoView({ behavior: 'smooth' });
+                })
+                .catch(error => {
+                    console.error('Error cargando detalle del día:', error);
+                    alert('Error al cargar el detalle del día: ' + error.message);
+                });
+        }
+        
+        function cerrarDetalleDia() {
+            document.getElementById('detalle-dia').style.display = 'none';
+        }
+        
+        async function exportarIngresosMesCSV() {
+            const mesSeleccionado = document.getElementById('mes-selector').value;
+            if (!mesSeleccionado) {
+                alert('Por favor seleccione un mes');
+                return;
+            }
+            try {
+                window.open(`/api/pagos/exportar-admin?mes=${mesSeleccionado}`, '_blank');
+                alert('Reporte de ingresos descargado correctamente');
+            } catch (error) {
+                console.error('Error exportando ingresos:', error);
+                alert('Error al exportar el reporte de ingresos');
+            }
+        }
+
+        // Funciones para reportes adicionales
+        async function generarReporteAnual() {
+            const year = new Date().getFullYear();
+            const fechaInicio = `${year}-01-01`;
+            const fechaFin = `${year}-12-31`;
+            await mostrarReporteTurnos(fechaInicio, fechaFin, `Reporte Anual ${year}`);
+        }
+
+        async function generarReporteMensual() {
+            const hoy = new Date();
+            const year = hoy.getFullYear();
+            const month = (hoy.getMonth() + 1).toString().padStart(2, '0');
+            const fechaInicio = `${year}-${month}-01`;
+            const ultimoDia = new Date(year, hoy.getMonth() + 1, 0).getDate();
+            const fechaFin = `${year}-${month}-${ultimoDia.toString().padStart(2, '0')}`;
+            await mostrarReporteTurnos(fechaInicio, fechaFin, `Reporte Mensual ${month}/${year}`);
+        }
+
+        async function generarReporteSemanal() {
+            const hoy = new Date();
+            const inicioSemana = new Date(hoy);
+            inicioSemana.setDate(hoy.getDate() - hoy.getDay() + 1); // Lunes
+            const finSemana = new Date(inicioSemana);
+            finSemana.setDate(inicioSemana.getDate() + 6); // Domingo
+            
+            const fechaInicio = inicioSemana.toISOString().split('T')[0];
+            const fechaFin = finSemana.toISOString().split('T')[0];
+            await mostrarReporteTurnos(fechaInicio, fechaFin, 'Reporte Semanal');
+        }
+
+        async function generarReporteDiario() {
+            const hoy = new Date().toISOString().split('T')[0];
+            await mostrarReporteTurnos(hoy, hoy, 'Reporte Diario');
+        }
+
+        // Función para mostrar reportes de turnos
+        async function mostrarReporteTurnos(fechaInicio, fechaFin, titulo) {
+            try {
+                const response = await fetch(`/api/reportes/turnos?fecha_inicio=${fechaInicio}&fecha_fin=${fechaFin}`);
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.error || 'Error al obtener el reporte');
+                }
+
+                // Crear modal para mostrar el reporte
+                const modalContent = `
+                    <div class="modal fade" id="reporteModal" tabindex="-1" aria-hidden="true">
+                        <div class="modal-dialog modal-xl">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title">${titulo}</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <div class="row mb-4">
+                                        <div class="col-md-3">
+                                            <div class="stat-card">
+                                                <h6 class="text-muted">Total Turnos</h6>
+                                                <h3 class="text-primary">${data.total_turnos}</h3>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="stat-card">
+                                                <h6 class="text-muted">Atendidos</h6>
+                                                <h3 class="text-success">${data.turnos_atendidos}</h3>
+                                                <small>${data.porcentaje_atencion}%</small>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="stat-card">
+                                                <h6 class="text-muted">Ausentes</h6>
+                                                <h3 class="text-danger">${data.turnos_ausentes}</h3>
+                                                <small>${data.porcentaje_ausencias}%</small>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="stat-card">
+                                                <h6 class="text-muted">Pendientes</h6>
+                                                <h3 class="text-warning">${data.turnos_pendientes}</h3>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <h6>Estadísticas por Médico</h6>
+                                            <div class="table-responsive">
+                                                <table class="table table-sm">
+                                                    <thead>
+                                                        <tr>
+                                                            <th>Médico</th>
+                                                            <th>Total</th>
+                                                            <th>Atendidos</th>
+                                                            <th>Ausentes</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        ${Object.entries(data.stats_por_medico).map(([medico, stats]) => `
+                                                            <tr>
+                                                                <td>${medico}</td>
+                                                                <td>${stats.total}</td>
+                                                                <td class="text-success">${stats.atendidos}</td>
+                                                                <td class="text-danger">${stats.ausentes}</td>
+                                                            </tr>
+                                                        `).join('')}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <h6>Tendencia por Día</h6>
+                                            <div class="table-responsive" style="max-height: 300px; overflow-y: auto;">
+                                                <table class="table table-sm">
+                                                    <thead>
+                                                        <tr>
+                                                            <th>Fecha</th>
+                                                            <th>Total</th>
+                                                            <th>Atendidos</th>
+                                                            <th>Ausentes</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        ${Object.entries(data.stats_por_dia).sort().map(([fecha, stats]) => `
+                                                            <tr>
+                                                                <td>${fecha}</td>
+                                                                <td>${stats.total}</td>
+                                                                <td class="text-success">${stats.atendidos}</td>
+                                                                <td class="text-danger">${stats.ausentes}</td>
+                                                            </tr>
+                                                        `).join('')}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                                    <button type="button" class="btn btn-primary" onclick="exportarReporte('turnos', '${fechaInicio}', '${fechaFin}')">Exportar PDF</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                // Remover modal existente si hay uno
+                const existingModal = document.getElementById('reporteModal');
+                if (existingModal) {
+                    existingModal.remove();
+                }
+
+                // Agregar nuevo modal
+                document.body.insertAdjacentHTML('beforeend', modalContent);
+                
+                // Mostrar modal
+                const modal = new bootstrap.Modal(document.getElementById('reporteModal'));
+                modal.show();
+
+            } catch (error) {
+                alert('Error al generar reporte: ' + error.message);
+            }
+        }
+
+        // Función para exportar reporte (placeholder)
+        function exportarReporte(tipo, fechaInicio, fechaFin) {
+            alert(`Exportando reporte de ${tipo} del ${fechaInicio} al ${fechaFin}`);
+        }
+
+        // Función para mostrar reporte de pacientes
+        async function mostrarReportePacientes() {
+            try {
+                const response = await fetch('/api/reportes/pacientes');
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.error || 'Error al obtener el reporte');
+                }
+
+                const modalContent = `
+                    <div class="modal fade" id="reportePacientesModal" tabindex="-1" aria-hidden="true">
+                        <div class="modal-dialog modal-xl">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title">Reporte de Pacientes</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <div class="row mb-4">
+                                        <div class="col-md-3">
+                                            <div class="stat-card">
+                                                <h6 class="text-muted">Total Pacientes</h6>
+                                                <h3 class="text-primary">${data.total_pacientes}</h3>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="stat-card">
+                                                <h6 class="text-muted">Edad Promedio</h6>
+                                                <h3 class="text-info">${data.estadisticas_edad.promedio} años</h3>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="stat-card">
+                                                <h6 class="text-muted">Pacientes Activos</h6>
+                                                <h3 class="text-success">${data.total_pacientes - data.pacientes_sin_turnos}</h3>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="stat-card">
+                                                <h6 class="text-muted">Sin Turnos</h6>
+                                                <h3 class="text-warning">${data.pacientes_sin_turnos}</h3>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <h6>Distribución por Obra Social</h6>
+                                            <div class="table-responsive">
+                                                <table class="table table-sm">
+                                                    <thead>
+                                                        <tr>
+                                                            <th>Obra Social</th>
+                                                            <th>Cantidad</th>
+                                                            <th>%</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        ${Object.entries(data.obras_sociales).sort((a,b) => b[1] - a[1]).map(([obra, cantidad]) => `
+                                                            <tr>
+                                                                <td>${obra}</td>
+                                                                <td>${cantidad}</td>
+                                                                <td>${Math.round((cantidad / data.total_pacientes) * 100)}%</td>
+                                                            </tr>
+                                                        `).join('')}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <h6>Distribución por Edad</h6>
+                                            <div class="table-responsive">
+                                                <table class="table table-sm">
+                                                    <thead>
+                                                        <tr>
+                                                            <th>Rango</th>
+                                                            <th>Cantidad</th>
+                                                            <th>%</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        ${Object.entries(data.estadisticas_edad.rangos).map(([rango, cantidad]) => `
+                                                            <tr>
+                                                                <td>${rango} años</td>
+                                                                <td>${cantidad}</td>
+                                                                <td>${Math.round((cantidad / data.total_pacientes) * 100)}%</td>
+                                                            </tr>
+                                                        `).join('')}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                            
+                                            <h6 class="mt-3">Pacientes Más Activos</h6>
+                                            <div class="table-responsive" style="max-height: 200px; overflow-y: auto;">
+                                                <table class="table table-sm">
+                                                    <thead>
+                                                        <tr>
+                                                            <th>Paciente</th>
+                                                            <th>Turnos</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        ${data.pacientes_activos.map(paciente => `
+                                                            <tr>
+                                                                <td>${paciente.nombre}</td>
+                                                                <td class="text-primary">${paciente.turnos}</td>
+                                                            </tr>
+                                                        `).join('')}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                                    <button type="button" class="btn btn-primary" onclick="exportarReporte('pacientes', '', '')">Exportar PDF</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                const existingModal = document.getElementById('reportePacientesModal');
+                if (existingModal) existingModal.remove();
+
+                document.body.insertAdjacentHTML('beforeend', modalContent);
+                const modal = new bootstrap.Modal(document.getElementById('reportePacientesModal'));
+                modal.show();
+
+            } catch (error) {
+                alert('Error al generar reporte de pacientes: ' + error.message);
+            }
+        }
+
+        // Función para mostrar reporte de ocupación
+        async function mostrarReporteOcupacion() {
+            try {
+                const hoy = new Date();
+                const fechaFin = hoy.toISOString().split('T')[0];
+                const fechaInicio = new Date(hoy.getTime() - (7 * 24 * 60 * 60 * 1000)).toISOString().split('T')[0];
+                
+                const response = await fetch(`/api/reportes/ocupacion?fecha_inicio=${fechaInicio}&fecha_fin=${fechaFin}`);
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.error || 'Error al obtener el reporte');
+                }
+
+                const modalContent = `
+                    <div class="modal fade" id="reporteOcupacionModal" tabindex="-1" aria-hidden="true">
+                        <div class="modal-dialog modal-xl">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title">Reporte de Ocupación de Agenda</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <div class="row mb-4">
+                                        <div class="col-md-4">
+                                            <div class="stat-card">
+                                                <h6 class="text-muted">Ocupación Promedio</h6>
+                                                <h3 class="text-primary">${data.ocupacion_promedio}%</h3>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="stat-card">
+                                                <h6 class="text-muted">Slots Disponibles</h6>
+                                                <h3 class="text-info">${data.total_slots_disponibles}</h3>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="stat-card">
+                                                <h6 class="text-muted">Slots Ocupados</h6>
+                                                <h3 class="text-success">${data.total_slots_ocupados}</h3>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <h6>Ocupación por Médico</h6>
+                                            <div class="table-responsive">
+                                                <table class="table table-sm">
+                                                    <thead>
+                                                        <tr>
+                                                            <th>Médico</th>
+                                                            <th>Disponibles</th>
+                                                            <th>Ocupados</th>
+                                                            <th>%</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        ${Object.entries(data.ocupacion_por_medico).map(([medico, stats]) => `
+                                                            <tr>
+                                                                <td>${medico}</td>
+                                                                <td>${stats.slots_disponibles}</td>
+                                                                <td class="text-success">${stats.slots_ocupados}</td>
+                                                                <td><span class="badge ${stats.porcentaje_ocupacion > 80 ? 'bg-success' : stats.porcentaje_ocupacion > 50 ? 'bg-warning' : 'bg-secondary'}">${stats.porcentaje_ocupacion}%</span></td>
+                                                            </tr>
+                                                        `).join('')}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <h6>Ocupación por Día</h6>
+                                            <div class="table-responsive" style="max-height: 300px; overflow-y: auto;">
+                                                <table class="table table-sm">
+                                                    <thead>
+                                                        <tr>
+                                                            <th>Fecha</th>
+                                                            <th>Disponibles</th>
+                                                            <th>Ocupados</th>
+                                                            <th>%</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        ${Object.entries(data.ocupacion_por_dia).sort().reverse().map(([fecha, stats]) => `
+                                                            <tr>
+                                                                <td>${fecha}</td>
+                                                                <td>${stats.slots_disponibles}</td>
+                                                                <td class="text-success">${stats.slots_ocupados}</td>
+                                                                <td><span class="badge ${stats.porcentaje_ocupacion > 80 ? 'bg-success' : stats.porcentaje_ocupacion > 50 ? 'bg-warning' : 'bg-secondary'}">${stats.porcentaje_ocupacion}%</span></td>
+                                                            </tr>
+                                                        `).join('')}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                                    <button type="button" class="btn btn-primary" onclick="exportarReporte('ocupacion', '${fechaInicio}', '${fechaFin}')">Exportar PDF</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                const existingModal = document.getElementById('reporteOcupacionModal');
+                if (existingModal) existingModal.remove();
+
+                document.body.insertAdjacentHTML('beforeend', modalContent);
+                const modal = new bootstrap.Modal(document.getElementById('reporteOcupacionModal'));
+                modal.show();
+
+            } catch (error) {
+                alert('Error al generar reporte de ocupación: ' + error.message);
+            }
+        }
+
+        // Función para mostrar dashboard ejecutivo
+        async function mostrarDashboardEjecutivo() {
+            try {
+                // Obtener datos de múltiples reportes
+                const [turnosResponse, pacientesResponse, ocupacionResponse, pagosResponse] = await Promise.all([
+                    fetch('/api/reportes/turnos'),
+                    fetch('/api/reportes/pacientes'),
+                    fetch('/api/reportes/ocupacion'),
+                    ]);
+
+                const [turnosData, pacientesData, ocupacionData, pagosData] = await Promise.all([
+                    turnosResponse.json(),
+                    pacientesResponse.json(),
+                    ocupacionResponse.json(),
+                    pagosResponse.json()
+                ]);
+
+                const modalContent = `
+                    <div class="modal fade" id="dashboardEjecutivoModal" tabindex="-1" aria-hidden="true">
+                        <div class="modal-dialog modal-xl">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title">Dashboard Ejecutivo</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <div class="row mb-4">
+                                        <div class="col-md-3">
+                                            <div class="stat-card">
+                                                <h6 class="text-muted">Pacientes Registrados</h6>
+                                                <h3 class="text-primary">${pacientesData.total_pacientes}</h3>
+                                                <small>Total en el sistema</small>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="stat-card">
+                                                <h6 class="text-muted">Turnos del Mes</h6>
+                                                <h3 class="text-success">${turnosData.total_turnos}</h3>
+                                                <small>${turnosData.porcentaje_atencion}% atendidos</small>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="stat-card">
+                                                <h6 class="text-muted">Ocupación Promedio</h6>
+                                                <h3 class="text-info">${ocupacionData.ocupacion_promedio}%</h3>
+                                                <small>Última semana</small>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="stat-card">
+                                                <h6 class="text-muted">Ingresos del Mes</h6>
+                                                <h3 class="text-warning">$${pagosData.total_mes}</h3>
+                                                <small>${pagosData.cantidad_pagos_mes} pagos</small>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <h6>Indicadores Clave</h6>
+                                            <div class="alert alert-success">
+                                                <strong>Edad promedio pacientes:</strong> ${pacientesData.estadisticas_edad.promedio} años<br>
+                                                <strong>Pacientes activos:</strong> ${pacientesData.total_pacientes - pacientesData.pacientes_sin_turnos}<br>
+                                                <strong>Eficiencia de agenda:</strong> ${ocupacionData.ocupacion_promedio}%
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="row">
+                                        <div class="col-md-12">
+                                            <h6>Top Médicos por Atención</h6>
+                                            <div class="table-responsive">
+                                                <table class="table table-sm">
+                                                    <thead>
+                                                        <tr>
+                                                            <th>Médico</th>
+                                                            <th>Turnos Totales</th>
+                                                            <th>Atendidos</th>
+                                                            <th>% Eficiencia</th>
+                                                            <th>Ocupación</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        ${Object.entries(turnosData.stats_por_medico).map(([medico, stats]) => {
+                                                            const eficiencia = stats.total > 0 ? Math.round((stats.atendidos / stats.total) * 100) : 0;
+                                                            const ocupacion = ocupacionData.ocupacion_por_medico[medico]?.porcentaje_ocupacion || 0;
+                                                            return `
+                                                                <tr>
+                                                                    <td>${medico}</td>
+                                                                    <td>${stats.total}</td>
+                                                                    <td class="text-success">${stats.atendidos}</td>
+                                                                    <td><span class="badge ${eficiencia > 85 ? 'bg-success' : eficiencia > 70 ? 'bg-warning' : 'bg-secondary'}">${eficiencia}%</span></td>
+                                                                    <td><span class="badge ${ocupacion > 80 ? 'bg-success' : ocupacion > 50 ? 'bg-warning' : 'bg-secondary'}">${ocupacion}%</span></td>
+                                                                </tr>
+                                                            `;
+                                                        }).join('')}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                                    <button type="button" class="btn btn-primary" onclick="exportarReporte('dashboard', '', '')">Exportar PDF</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                const existingModal = document.getElementById('dashboardEjecutivoModal');
+                if (existingModal) existingModal.remove();
+
+                document.body.insertAdjacentHTML('beforeend', modalContent);
+                const modal = new bootstrap.Modal(document.getElementById('dashboardEjecutivoModal'));
+                modal.show();
+
+            } catch (error) {
+                alert('Error al generar dashboard ejecutivo: ' + error.message);
+            }
+        }
+
+        // Función para generar reporte personalizado
+        async function generarReportePersonalizado() {
+            const fechaInicio = document.getElementById('fecha-inicio-custom').value;
+            const fechaFin = document.getElementById('fecha-fin-custom').value;
+            const medico = document.getElementById('medico-filtro').value;
+            const tipo = 'turnos'; // mantener comportamiento previo para botón existente
+
+            if (!fechaInicio || !fechaFin) {
+                alert('Por favor seleccione las fechas de inicio y fin');
+                return;
+            }
+
+            if (fechaInicio > fechaFin) {
+                alert('La fecha de inicio no puede ser mayor que la fecha de fin');
+                return;
+            }
+            try {
+                let url = '';
+                switch (tipo) {
+                    case 'turnos':
+                        url = `/api/reportes/turnos?fecha_inicio=${fechaInicio}&fecha_fin=${fechaFin}`;
+                        if (medico) url += `&medico=${encodeURIComponent(medico)}`;
+                        await mostrarReporteTurnos(fechaInicio, fechaFin, `Reporte Personalizado de Turnos`);
+                        break;
+                    case 'ocupacion':
+                        await mostrarReporteOcupacionPersonalizado(fechaInicio, fechaFin);
+                        break;
+                    case 'pacientes':
+                        await mostrarReportePacientes();
+                        break;
+                    default:
+                        alert('Tipo de reporte no válido');
+                        return;
+                }
+            } catch (error) {
+                alert('Error al generar reporte personalizado: ' + error.message);
+            }
+        }
+
+        // Nuevo: Reporte de Atenciones por Médico
+        async function generarReporteAtenciones() {
+            const fechaInicio = document.getElementById('fecha-inicio-custom').value;
+            const fechaFin = document.getElementById('fecha-fin-custom').value;
+            const medico = document.getElementById('medico-filtro').value;
+            const obra = document.getElementById('obra-social-filtro').value.trim();
+
+            try {
+                const qs = new URLSearchParams({ fecha_inicio: fechaInicio, fecha_fin: fechaFin });
+                if (medico) qs.append('medico', medico);
+                if (obra) qs.append('obra_social', obra);
+                const res = await fetch(`/api/reportes/atenciones?${qs.toString()}`);
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || 'Error');
+
+                const modalContent = `
+                    <div class="modal fade" id="reporteAtencionesModal" tabindex="-1" aria-hidden="true">
+                        <div class="modal-dialog modal-xl">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title">Atenciones por Médico</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <div class="row mb-4">
+                                        <div class="col-md-3"><div class="stat-card"><h6 class="text-muted">Rango</h6><h3>${data.fecha_inicio} a ${data.fecha_fin}</h3></div></div>
+                                        <div class="col-md-3"><div class="stat-card"><h6 class="text-muted">Médico</h6><h3>${data.medico || 'Todos'}</h3></div></div>
+                                        <div class="col-md-3"><div class="stat-card"><h6 class="text-muted">Obra Social</h6><h3>${data.obra_social || 'Todas'}</h3></div></div>
+                                        <div class="col-md-3"><div class="stat-card"><h6 class="text-muted">Total Pacientes</h6><h3 class="text-primary">${data.total_pacientes}</h3></div></div>
+                                        <div class="col-md-3 mt-3 mt-md-0"><div class="stat-card"><h6 class="text-muted">Total Atenciones</h6><h3 class="text-success">${data.total_atenciones}</h3></div></div>
+                                    </div>
+                                    <div class="table-responsive" style="max-height: 60vh; overflow-y: auto;">
+                                        <table class="table table-sm table-hover">
+                                            <thead>
+                                                <tr>
+                                                    <th>DNI</th>
+                                                    <th>Apellido</th>
+                                                    <th>Nombre</th>
+                                                    <th>Obra Social</th>
+                                                    <th>N° Obra Social</th>
+                                                    <th>Atenciones</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                ${data.detalles.map(d => `
+                                                    <tr>
+                                                        <td>${d.dni}</td>
+                                                        <td>${d.apellido}</td>
+                                                        <td>${d.nombre}</td>
+                                                        <td>${d.obra_social}</td>
+                                                        <td>${d.numero_obra_social}</td>
+                                                        <td class="text-primary fw-bold">${d.atenciones}</td>
+                                                    </tr>
+                                                `).join('')}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                                    <button type="button" class="btn btn-primary" onclick="exportarReporteAtencionesCSV()">Descargar CSV</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>`;
+
+                const existing = document.getElementById('reporteAtencionesModal');
+                if (existing) existing.remove();
+                document.body.insertAdjacentHTML('beforeend', modalContent);
+                new bootstrap.Modal(document.getElementById('reporteAtencionesModal')).show();
+            } catch (e) {
+                alert('Error al generar reporte de atenciones: ' + e.message);
+            }
+        }
+
+        function exportarReporteAtencionesCSV() {
+            const fechaInicio = document.getElementById('fecha-inicio-custom').value;
+            const fechaFin = document.getElementById('fecha-fin-custom').value;
+            const medico = document.getElementById('medico-filtro').value;
+            const obra = document.getElementById('obra-social-filtro').value.trim();
+            const qs = new URLSearchParams({ fecha_inicio: fechaInicio, fecha_fin: fechaFin, export: 'csv' });
+            if (medico) qs.append('medico', medico);
+            if (obra) qs.append('obra_social', obra);
+            window.open(`/api/reportes/atenciones?${qs.toString()}`, '_blank');
+        }
+
+        async function mostrarReporteOcupacionPersonalizado(fechaInicio, fechaFin) {
+            try {
+                const response = await fetch(`/api/reportes/ocupacion?fecha_inicio=${fechaInicio}&fecha_fin=${fechaFin}`);
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.error || 'Error al obtener el reporte');
+                }
+
+                // Usar la misma función pero con título personalizado
+                const modalContent = document.getElementById('reporteOcupacionModal')?.innerHTML || '';
+                await mostrarReporteOcupacion(); // Reutilizar la función existente
+                
+                // Cambiar el título
+                const modal = document.getElementById('reporteOcupacionModal');
+                if (modal) {
+                    const title = modal.querySelector('.modal-title');
+                    if (title) {
+                        title.textContent = `Reporte de Ocupación Personalizado (${fechaInicio} - ${fechaFin})`;
+                    }
+                }
+
+            } catch (error) {
+                alert('Error al generar reporte de ocupación personalizado: ' + error.message);
+            }
+        }                                                          
+    </script>
+</body>
+</html>

@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Panel del Médico - Consultorio Colom-Bobbiesi</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#dc2626',
+            secondary: '#059669',
+            accent: '#7c3aed',
+            warning: '#d97706',
+            success: '#16a34a',
+            info: '#2563eb'
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen flex flex-col">
+  
+  <!-- Header -->
+  <div class="bg-white shadow-lg border-b-4 border-primary">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center space-x-4">
+          <div class="bg-primary p-3 rounded-xl">
+            <i class="fas fa-user-md text-white text-2xl"></i>
+          </div>
+          <div>
+            <h1 class="text-2xl font-bold text-gray-900">Panel del Médico</h1>
+            <p class="text-gray-600">Gestión de pacientes y flujo de atención</p>
+          </div>
+        </div>
+        <div class="flex items-center space-x-3">
+          <button onclick="actualizarDatos()" class="bg-blue-100 hover:bg-blue-200 text-blue-700 px-4 py-2 rounded-lg transition-colors duration-200 flex items-center space-x-2">
+            <i class="fas fa-sync-alt"></i>
+            <span>Actualizar</span>
+          </button>
+          <a href="/historias-gestion" class="bg-green-100 hover:bg-green-200 text-green-700 px-4 py-2 rounded-lg transition-colors duration-200 flex items-center space-x-2">
+            <i class="fas fa-file-medical"></i>
+            <span>Historias Clínicas</span>
+          </a>
+          <a href="/" class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg transition-colors duration-200 flex items-center space-x-2">
+            <i class="fas fa-home"></i>
+            <span>Inicio</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Contenido Principal -->
+  <div class="flex-1">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      
+      <!-- Estadísticas Rápidas -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div class="bg-white rounded-xl p-6 shadow-lg border border-gray-200 hover:shadow-xl transition-all duration-300">
+          <div class="flex items-center">
+            <div class="bg-blue-100 p-3 rounded-lg">
+              <i class="fas fa-users text-blue-600 text-xl"></i>
+            </div>
+            <div class="ml-4">
+              <p class="text-sm font-medium text-gray-600">En Sala de Espera</p>
+              <p class="text-2xl font-bold text-gray-900" id="total-waiting">0</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-xl p-6 shadow-lg border border-gray-200 hover:shadow-xl transition-all duration-300">
+          <div class="flex items-center">
+            <div class="bg-warning p-3 rounded-lg">
+              <i class="fas fa-bell text-white text-xl"></i>
+            </div>
+            <div class="ml-4">
+              <p class="text-sm font-medium text-gray-600">Llamados</p>
+              <p class="text-2xl font-bold text-gray-900" id="total-called">0</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-xl p-6 shadow-lg border border-gray-200 hover:shadow-xl transition-all duration-300">
+          <div class="flex items-center">
+            <div class="bg-success p-3 rounded-lg">
+              <i class="fas fa-check-circle text-white text-xl"></i>
+            </div>
+            <div class="ml-4">
+              <p class="text-sm font-medium text-gray-600">Atendidos Hoy</p>
+              <p class="text-2xl font-bold text-gray-900" id="total-attended">0</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-xl p-6 shadow-lg border border-gray-200 hover:shadow-xl transition-all duration-300">
+          <div class="flex items-center">
+            <div class="bg-info p-3 rounded-lg">
+              <i class="fas fa-clock text-white text-xl"></i>
+            </div>
+            <div class="ml-4">
+              <p class="text-sm font-medium text-gray-600">Tiempo Promedio</p>
+              <p class="text-2xl font-bold text-gray-900" id="tiempo-promedio">-</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Gestión de Pacientes -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+        
+        <!-- Sala de Espera -->
+        <div class="bg-white rounded-xl shadow-lg border border-gray-200">
+          <div class="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-4 rounded-t-xl">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center space-x-3">
+                <i class="fas fa-users text-xl"></i>
+                <h3 class="text-lg font-semibold">Sala de Espera</h3>
+              </div>
+              <span class="bg-white text-blue-600 px-3 py-1 rounded-full text-sm font-semibold" id="badge-waiting">0</span>
+            </div>
+          </div>
+          <div class="p-6 min-h-[400px]">
+            <div id="waiting-room-patients">
+              <div class="text-center py-12">
+                <i class="fas fa-users text-gray-300 text-4xl mb-4"></i>
+                <p class="text-gray-500">No hay pacientes en sala de espera</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Pacientes Llamados -->
+        <div class="bg-white rounded-xl shadow-lg border border-gray-200">
+          <div class="bg-gradient-to-r from-warning to-orange-600 text-white px-6 py-4 rounded-t-xl">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center space-x-3">
+                <i class="fas fa-bell text-xl"></i>
+                <h3 class="text-lg font-semibold">Pacientes Llamados</h3>
+              </div>
+              <span class="bg-white text-warning px-3 py-1 rounded-full text-sm font-semibold" id="badge-called">0</span>
+            </div>
+          </div>
+          <div class="p-6 min-h-[400px]">
+            <div id="called-patients">
+              <div class="text-center py-12">
+                <i class="fas fa-bell text-gray-300 text-4xl mb-4"></i>
+                <p class="text-gray-500">No hay pacientes llamados</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Pacientes Atendidos -->
+      <div class="bg-white rounded-xl shadow-lg border border-gray-200">
+        <div class="bg-gradient-to-r from-success to-green-600 text-white px-6 py-4 rounded-t-xl">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+              <i class="fas fa-check-circle text-xl"></i>
+              <h3 class="text-lg font-semibold">Pacientes Atendidos Hoy</h3>
+            </div>
+            <div class="flex items-center space-x-3">
+              <span class="bg-white text-success px-3 py-1 rounded-full text-sm font-semibold" id="badge-attended">0</span>
+              <button onclick="toggleAttendedSection()" class="bg-white bg-opacity-20 hover:bg-opacity-30 p-2 rounded-lg transition-colors">
+                <i class="fas fa-chevron-down" id="attended-chevron"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+        <div class="hidden" id="attended-section">
+          <div class="p-6">
+            <div id="attended-patients">
+              <div class="text-center py-12">
+                <i class="fas fa-check-circle text-gray-300 text-4xl mb-4"></i>
+                <p class="text-gray-500">No hay pacientes atendidos hoy</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="bg-white border-t border-gray-200 mt-12">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <div class="text-center text-gray-600">
+        <p>&copy; 2025 Consultorio Colom-Bobbiesi. Desarrollado por <strong>Nicolas Fernandez</strong></p>
+        <p class="text-sm mt-1">Sistema de gestión de turnos y pacientes</p>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Modal para Historia Clínica -->
+  <div id="historiaModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+    <div class="bg-white rounded-xl p-6 w-full max-w-4xl mx-4 max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between mb-6">
+        <h3 class="text-xl font-semibold text-gray-900 flex items-center">
+          <i class="fas fa-file-medical text-green-600 mr-3"></i>
+          Historia Clínica
+        </h3>
+        <button onclick="cerrarModalHistoria()" class="text-gray-400 hover:text-gray-600">
+          <i class="fas fa-times text-xl"></i>
+        </button>
+      </div>
+      
+      <div id="patient-info" class="mb-6">
+        <!-- Información del paciente se carga aquí -->
+      </div>
+      
+      <div class="flex justify-end space-x-3">
+        <button onclick="cerrarModalHistoria()" class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg transition-colors">
+          Cerrar
+        </button>
+        <button onclick="abrirHistoriaCompleta()" class="bg-primary hover:bg-red-700 text-white px-4 py-2 rounded-lg transition-colors flex items-center space-x-2">
+          <i class="fas fa-edit"></i>
+          <span>Editar Historia</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let pacientesData = [];
+    let usuarioMedico = null;
+    let attendedSectionVisible = false;
+
+    document.addEventListener('DOMContentLoaded', function() {
+      obtenerUsuario();
+      actualizarDatos();
+      
+      // Auto-actualizar cada 30 segundos
+      setInterval(actualizarDatos, 30000);
+    });
+
+    async function obtenerUsuario() {
+      try {
+        const response = await fetch('/api/session-info');
+        const data = await response.json();
+        usuarioMedico = data.usuario;
+        console.log('Usuario médico obtenido:', usuarioMedico);
+      } catch (error) {
+        console.error('Error obteniendo usuario:', error);
+        // Fallback: usar nombre del usuario de la sesión
+        usuarioMedico = 'Marianela Bobbiesi'; // Temporal para debug
+      }
+    }
+
+    async function actualizarDatos() {
+      try {
+        const hoy = new Date().toISOString().split('T')[0];
+        console.log('Actualizando datos para fecha:', hoy);
+        console.log('Usuario médico:', usuarioMedico);
+        
+        const response = await fetch(`/api/turnos/dia?fecha=${hoy}`);
+        const turnos = await response.json();
+        console.log('Turnos recibidos:', turnos.length);
+        
+        // Filtrar solo turnos del médico logueado
+        const turnosMedico = turnos.filter(t => t.medico === usuarioMedico);
+        console.log('Turnos del médico:', turnosMedico.length);
+        
+        // Separar por estados
+        const enSalaEspera = turnosMedico.filter(t => t.estado === 'sala de espera');
+        const llamados = turnosMedico.filter(t => t.estado === 'llamado');
+        const atendidos = turnosMedico.filter(t => t.estado === 'atendido');
+        
+        console.log('En sala de espera:', enSalaEspera.length);
+        console.log('Llamados:', llamados.length);
+        console.log('Atendidos:', atendidos.length);
+        
+        // Actualizar estadísticas
+        const totalWaitingEl = document.getElementById('total-waiting');
+        const totalCalledEl = document.getElementById('total-called');
+        const totalAttendedEl = document.getElementById('total-attended');
+        
+        if (totalWaitingEl) totalWaitingEl.textContent = enSalaEspera.length;
+        if (totalCalledEl) totalCalledEl.textContent = llamados.length;
+        if (totalAttendedEl) totalAttendedEl.textContent = atendidos.length;
+        
+        const badgeWaitingEl = document.getElementById('badge-waiting');
+        const badgeCalledEl = document.getElementById('badge-called');
+        const badgeAttendedEl = document.getElementById('badge-attended');
+        
+        if (badgeWaitingEl) badgeWaitingEl.textContent = enSalaEspera.length;
+        if (badgeCalledEl) badgeCalledEl.textContent = llamados.length;
+        if (badgeAttendedEl) badgeAttendedEl.textContent = atendidos.length;
+        
+        // Renderizar pacientes
+        renderizarPacientes('waiting-room-patients', enSalaEspera, 'waiting-room', 'sala de espera');
+        renderizarPacientes('called-patients', llamados, 'called', 'llamado');
+        renderizarPacientes('attended-patients', atendidos, 'attended', 'atendido');
+        
+        // Calcular tiempo promedio
+        calcularTiempoPromedio(atendidos);
+        
+      } catch (error) {
+        console.error('Error actualizando datos:', error);
+        mostrarError('Error al cargar los datos de pacientes');
+      }
+    }
+
+
+    function renderizarPacientes(containerId, pacientes, cardClass, estado) {
+      const container = document.getElementById(containerId);
+      
+      if (pacientes.length === 0) {
+        container.innerHTML = `
+          <div class="text-center py-12">
+            <i class="fas fa-${getIconForState(estado)} text-gray-300 text-4xl mb-4"></i>
+            <p class="text-gray-500">No hay pacientes ${getStateDescription(estado)}</p>
+          </div>
+        `;
+        return;
+      }
+      
+      let html = '';
+      pacientes.forEach(paciente => {
+        const info = paciente.paciente || {};
+        const nombreCompleto = `${info.nombre || ''} ${info.apellido || ''}`.trim() || `DNI: ${paciente.dni_paciente}`;
+        const edad = info.edad ? `${info.edad} años` : 'Edad no disponible';
+        
+        html += `
+          <div class="bg-white border border-gray-200 rounded-lg p-4 mb-4 hover:shadow-md transition-all duration-200 cursor-pointer" onclick="mostrarDetallesPaciente('${paciente.dni_paciente}')">
+            <div class="flex justify-between items-start">
+              <div class="flex-1">
+                <h4 class="font-semibold text-gray-900 mb-2">${nombreCompleto}</h4>
+                <div class="space-y-1 text-sm text-gray-600">
+                  <div class="flex items-center">
+                    <i class="fas fa-id-card w-4 mr-2"></i>
+                    <span>DNI: ${paciente.dni_paciente}</span>
+                  </div>
+                  <div class="flex items-center">
+                    <i class="fas fa-calendar w-4 mr-2"></i>
+                    <span>${edad}</span>
+                  </div>
+                  <div class="flex items-center">
+                    <i class="fas fa-hospital w-4 mr-2"></i>
+                    <span>${info.obra_social || 'No especificada'}</span>
+                  </div>
+                  <div class="flex items-center">
+                    <i class="fas fa-clock w-4 mr-2"></i>
+                    <span>Turno: ${paciente.hora}</span>
+                  </div>
+                </div>
+              </div>
+              <div class="ml-4 space-y-2">
+                ${generarBotones(paciente, estado)}
+              </div>
+            </div>
+          </div>
+        `;
+      });
+      
+      container.innerHTML = html;
+    }
+
+    function generarBotones(paciente, estado) {
+      if (estado === 'sala de espera') {
+        return `
+          <button class="w-full bg-warning hover:bg-orange-600 text-white px-3 py-2 rounded-lg text-sm transition-colors flex items-center justify-center space-x-2" onclick="event.stopPropagation(); llamarPaciente('${paciente.dni_paciente}', '${paciente.fecha}', '${paciente.hora}')">
+            <i class="fas fa-bell"></i>
+            <span>Llamar</span>
+          </button>
+          <button class="w-full bg-success hover:bg-green-600 text-white px-3 py-2 rounded-lg text-sm transition-colors flex items-center justify-center space-x-2" onclick="event.stopPropagation(); marcarAtendido('${paciente.dni_paciente}', '${paciente.fecha}', '${paciente.hora}')">
+            <i class="fas fa-check"></i>
+            <span>Atender</span>
+          </button>
+          <button class="w-full bg-red-500 hover:bg-red-600 text-white px-3 py-2 rounded-lg text-sm transition-colors flex items-center justify-center space-x-2" onclick="event.stopPropagation(); marcarAusente('${paciente.dni_paciente}', '${paciente.fecha}', '${paciente.hora}')">
+            <i class="fas fa-times"></i>
+            <span>Ausente</span>
+          </button>
+        `;
+      } else if (estado === 'llamado') {
+        return `
+          <button class="w-full bg-success hover:bg-green-600 text-white px-3 py-2 rounded-lg text-sm transition-colors flex items-center justify-center space-x-2" onclick="event.stopPropagation(); marcarAtendido('${paciente.dni_paciente}', '${paciente.fecha}', '${paciente.hora}')">
+            <i class="fas fa-check"></i>
+            <span>Atender</span>
+          </button>
+          <button class="w-full bg-red-500 hover:bg-red-600 text-white px-3 py-2 rounded-lg text-sm transition-colors flex items-center justify-center space-x-2" onclick="event.stopPropagation(); marcarAusente('${paciente.dni_paciente}', '${paciente.fecha}', '${paciente.hora}')">
+            <i class="fas fa-times"></i>
+            <span>Ausente</span>
+          </button>
+        `;
+      } else if (estado === 'atendido') {
+        return `
+          <span class="bg-success text-white px-3 py-2 rounded-lg text-sm flex items-center justify-center space-x-2">
+            <i class="fas fa-check-circle"></i>
+            <span>Atendido</span>
+          </span>
+        `;
+      }
+      return '';
+    }
+
+    function getIconForState(estado) {
+      const icons = {
+        'sala de espera': 'users',
+        'llamado': 'bell',
+        'atendido': 'check-circle'
+      };
+      return icons[estado] || 'person';
+    }
+
+    function getStateDescription(estado) {
+      const descriptions = {
+        'sala de espera': 'en sala de espera',
+        'llamado': 'llamados',
+        'atendido': 'atendidos'
+      };
+      return descriptions[estado] || estado;
+    }
+
+    async function llamarPaciente(dni, fecha, hora) {
+      await cambiarEstadoPaciente(dni, fecha, hora, 'llamado');
+    }
+
+    async function marcarAtendido(dni, fecha, hora) {
+      await cambiarEstadoPaciente(dni, fecha, hora, 'atendido');
+      // Redirigir a historia clínica
+      setTimeout(() => {
+        window.location.href = `/historias?dni=${dni}`;
+      }, 1000);
+    }
+
+    async function marcarAusente(dni, fecha, hora) {
+      if (confirm('¿Está seguro de marcar este paciente como ausente?')) {
+        await cambiarEstadoPaciente(dni, fecha, hora, 'ausente');
+      }
+    }
+
+    async function cambiarEstadoPaciente(dni, fecha, hora, nuevoEstado) {
+      try {
+        const response = await fetch('/api/turnos/estado', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            dni_paciente: dni,
+            fecha: fecha,
+            hora: hora,
+            estado: nuevoEstado
+          })
+        });
+
+        const result = await response.json();
+        
+        if (response.ok) {
+          mostrarNotificacion(`Paciente marcado como ${nuevoEstado}`, 'success');
+          actualizarDatos();
+        } else {
+          mostrarError(result.error || 'Error al actualizar estado');
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        mostrarError('Error de conexión');
+      }
+    }
+
+    async function mostrarDetallesPaciente(dni) {
+      try {
+        // Cargar información del paciente
+        const [pacienteRes, historiaRes] = await Promise.all([
+          fetch('/api/pacientes'),
+          fetch(`/historias/${dni}`).catch(() => null)
+        ]);
+        
+        const pacientes = await pacienteRes.json();
+        const paciente = pacientes.find(p => p.dni === dni);
+        
+        if (!paciente) {
+          mostrarError('Paciente no encontrado');
+          return;
+        }
+        
+        let historia = null;
+        if (historiaRes && historiaRes.ok) {
+          historia = await historiaRes.json();
+        }
+        
+        const infoContainer = document.getElementById('patient-info');
+        infoContainer.innerHTML = `
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="bg-blue-50 rounded-lg p-4">
+              <h5 class="font-semibold text-blue-900 mb-3 flex items-center">
+                <i class="fas fa-user mr-2"></i>
+                Información Personal
+              </h5>
+              <div class="space-y-2 text-sm">
+                <div><strong>Nombre:</strong> ${paciente.nombre} ${paciente.apellido}</div>
+                <div><strong>DNI:</strong> ${paciente.dni}</div>
+                <div><strong>Edad:</strong> ${paciente.edad || 'No especificada'} años</div>
+                <div><strong>Teléfono:</strong> ${paciente.celular}</div>
+                <div><strong>Obra Social:</strong> ${paciente.obra_social}</div>
+                <div><strong>N° Obra Social:</strong> ${paciente.numero_obra_social}</div>
+              </div>
+            </div>
+            <div class="bg-green-50 rounded-lg p-4">
+              <h5 class="font-semibold text-green-900 mb-3 flex items-center">
+                <i class="fas fa-file-medical mr-2"></i>
+                Historia Clínica
+              </h5>
+              ${historia ? `
+                <div class="space-y-2 text-sm">
+                  <div><strong>Último diagnóstico:</strong> ${historia.diagnostico}</div>
+                  <div><strong>Tratamiento:</strong> ${historia.tratamiento || 'No especificado'}</div>
+                  <div><strong>Última consulta:</strong> ${historia.fecha_consulta || 'No registrada'}</div>
+                  <div><strong>Observaciones:</strong> ${historia.observaciones || 'Ninguna'}</div>
+                </div>
+              ` : `
+                <p class="text-gray-500">No hay historia clínica registrada</p>
+              `}
+            </div>
+          </div>
+        `;
+        
+        // Guardar DNI para el botón de editar
+        window.currentPatientDNI = dni;
+        
+        // Mostrar modal
+        document.getElementById('historiaModal').classList.remove('hidden');
+        
+      } catch (error) {
+        console.error('Error:', error);
+        mostrarError('Error al cargar detalles del paciente');
+      }
+    }
+
+    function cerrarModalHistoria() {
+      document.getElementById('historiaModal').classList.add('hidden');
+    }
+
+    function abrirHistoriaCompleta() {
+      if (window.currentPatientDNI) {
+        window.location.href = `/historias?dni=${window.currentPatientDNI}`;
+      }
+    }
+
+    function toggleAttendedSection() {
+      const section = document.getElementById('attended-section');
+      const chevron = document.getElementById('attended-chevron');
+      
+      if (attendedSectionVisible) {
+        section.classList.add('hidden');
+        chevron.classList.remove('fa-chevron-up');
+        chevron.classList.add('fa-chevron-down');
+        attendedSectionVisible = false;
+      } else {
+        section.classList.remove('hidden');
+        chevron.classList.remove('fa-chevron-down');
+        chevron.classList.add('fa-chevron-up');
+        attendedSectionVisible = true;
+      }
+    }
+
+    function calcularTiempoPromedio(atendidos) {
+      const tiempoElement = document.getElementById('tiempo-promedio');
+      if (atendidos.length > 0) {
+        tiempoElement.textContent = '~15min';
+      } else {
+        tiempoElement.textContent = '-';
+      }
+    }
+
+    function mostrarNotificacion(mensaje, tipo = 'info') {
+      const colors = {
+        'success': 'bg-green-500',
+        'error': 'bg-red-500',
+        'warning': 'bg-yellow-500',
+        'info': 'bg-blue-500'
+      };
+      
+      const toast = document.createElement('div');
+      toast.className = `fixed top-4 right-4 ${colors[tipo]} text-white px-6 py-3 rounded-lg shadow-lg z-50 transform transition-all duration-300`;
+      toast.style.transform = 'translateX(100%)';
+      toast.innerHTML = `
+        <div class="flex items-center">
+          <span class="mr-2">${mensaje}</span>
+          <button onclick="this.parentElement.parentElement.remove()" class="ml-2 text-white hover:text-gray-200">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+      `;
+      
+      document.body.appendChild(toast);
+      
+      setTimeout(() => {
+        toast.style.transform = 'translateX(0)';
+      }, 100);
+      
+      setTimeout(() => {
+        toast.style.transform = 'translateX(100%)';
+        setTimeout(() => {
+          if (toast.parentElement) {
+            toast.remove();
+          }
+        }, 300);
+      }, 3000);
+    }
+
+    function mostrarError(mensaje) {
+      mostrarNotificacion(mensaje, 'error');
+    }
+  </script>
+</body>
+</html>

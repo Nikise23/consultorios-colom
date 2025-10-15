@@ -1,0 +1,861 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gestión de Pacientes - Consultorio</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#2563eb',
+            secondary: '#0891b2',
+            success: '#059669',
+            danger: '#dc2626',
+            warning: '#d97706',
+            info: '#7c3aed'
+          }
+        }
+      }
+    };
+  </script>
+</head>
+<body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen">
+  <!-- Header -->
+  <div class="bg-white shadow-lg border-b-4 border-primary">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center space-x-3">
+          <div class="bg-primary p-3 rounded-full">
+            <i class="fas fa-user-md text-white text-xl"></i>
+          </div>
+          <div>
+            <h1 class="text-3xl font-bold text-gray-900">Gestión de Pacientes</h1>
+            <p class="text-gray-600">Registro y administración de pacientes</p>
+          </div>
+        </div>
+        <a href="/" class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg transition-colors duration-200 flex items-center space-x-2">
+          <i class="fas fa-arrow-left"></i>
+          <span>Volver al inicio</span>
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="grid lg:grid-cols-2 gap-8">
+      <!-- Formulario de registro / modificación -->
+      <div class="bg-white shadow-xl rounded-2xl p-8 border border-gray-100">
+        <div class="flex items-center space-x-3 mb-6">
+          <div class="bg-primary p-2 rounded-lg">
+            <i class="fas fa-user-plus text-white"></i>
+          </div>
+          <h2 class="text-2xl font-bold text-gray-900" id="form-title">Registrar Paciente</h2>
+        </div>
+        
+        <form id="form-paciente" class="space-y-6">
+          <!-- Información Personal -->
+          <div class="bg-gray-50 p-4 rounded-lg">
+            <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+              <i class="fas fa-user text-primary mr-2"></i>
+              Información Personal
+            </h3>
+            
+            <div class="grid md:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Nombre *</label>
+                <input type="text" id="nombre" placeholder="Ingrese el nombre" class="input-field" required>
+                <div class="error-message" id="error-nombre"></div>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Apellido *</label>
+                <input type="text" id="apellido" placeholder="Ingrese el apellido" class="input-field" required>
+                <div class="error-message" id="error-apellido"></div>
+              </div>
+            </div>
+            
+            <div class="mt-4">
+              <label class="block text-sm font-medium text-gray-700 mb-2">DNI *</label>
+              <input type="text" id="dni" placeholder="Ej: 12345678" class="input-field" maxlength="8" required>
+              <div class="text-xs text-gray-500 mt-1">Máximo 8 dígitos</div>
+              <div class="error-message" id="error-dni"></div>
+            </div>
+            
+            <div class="grid md:grid-cols-2 gap-4 mt-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Fecha de Nacimiento *</label>
+                <input type="date" id="fecha_nacimiento" class="input-field" required>
+                <div class="error-message" id="error-fecha"></div>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Edad</label>
+                <input type="text" id="edad" placeholder="Se calcula automáticamente" class="input-field bg-gray-100" readonly>
+              </div>
+            </div>
+          </div>
+
+          <!-- Información Médica -->
+          <div class="bg-blue-50 p-4 rounded-lg">
+            <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+              <i class="fas fa-heartbeat text-secondary mr-2"></i>
+              Información Médica
+            </h3>
+            
+            <div class="grid md:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Obra Social *</label>
+                <input type="text" id="obra_social" placeholder="Ej: OSDE, Swiss Medical" class="input-field" required>
+                <div class="error-message" id="error-obra"></div>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">N° Obra Social *</label>
+                <input type="text" id="numero_obra_social" placeholder="Número de afiliado" class="input-field" required>
+                <div class="error-message" id="error-numero-obra"></div>
+              </div>
+            </div>
+            
+            <div class="mt-4">
+              <label class="block text-sm font-medium text-gray-700 mb-2">Celular *</label>
+              <input type="tel" id="celular" placeholder="Ej: 11-1234-5678" class="input-field" required>
+              <div class="error-message" id="error-celular"></div>
+            </div>
+          </div>
+
+          <!-- Botones de acción -->
+          <div class="flex flex-col sm:flex-row gap-3 pt-4">
+            <button type="submit" class="btn-primary flex-1">
+              <i class="fas fa-save mr-2"></i>
+              <span id="btn-text">Guardar Paciente</span>
+            </button>
+            <button type="button" onclick="limpiarFormulario()" class="btn-secondary flex-1">
+              <i class="fas fa-times mr-2"></i>
+              Cancelar
+            </button>
+          </div>
+          <!-- Botones de acción después del registro exitoso -->
+          <div id="acciones-post-registro" class="hidden mt-6 p-6 bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-200 rounded-xl">
+            <div class="flex items-center space-x-3 mb-4">
+              <div class="bg-green-500 p-2 rounded-full">
+                <i class="fas fa-check text-white"></i>
+              </div>
+              <p class="text-green-800 font-bold text-lg">¡Paciente registrado exitosamente!</p>
+            </div>
+            <div class="grid sm:grid-cols-1 md:grid-cols-3 gap-3">
+              <button onclick="irAAgenda()" class="btn-success">
+                <i class="fas fa-calendar-plus mr-2"></i>
+                Sacar Turno Ahora
+              </button>
+              <button onclick="registrarOtroPaciente()" class="btn-info">
+                <i class="fas fa-user-plus mr-2"></i>
+                Registrar Otro
+              </button>
+              <button onclick="verListaPacientes()" class="btn-secondary">
+                <i class="fas fa-list mr-2"></i>
+                Ver Lista
+              </button>
+            </div>
+          </div>
+        </form>
+        
+        <!-- Mensaje de estado -->
+        <div id="mensaje" class="mt-4 p-4 rounded-lg hidden"></div>
+      </div>
+
+      <!-- Listado de pacientes -->
+      <div class="bg-white shadow-xl rounded-2xl p-8 border border-gray-100">
+        <div class="flex items-center space-x-3 mb-6">
+          <div class="bg-secondary p-2 rounded-lg">
+            <i class="fas fa-users text-white"></i>
+          </div>
+          <h2 class="text-2xl font-bold text-gray-900">Lista de Pacientes</h2>
+        </div>
+        
+        <!-- Barra de búsqueda -->
+        <div class="bg-gray-50 p-4 rounded-lg mb-6">
+          <div class="flex flex-col sm:flex-row gap-3">
+            <div class="flex-1 relative">
+              <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+              <input type="text" id="buscar" placeholder="Buscar por DNI, nombre o apellido..." 
+                     class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">
+            </div>
+            <button onclick="cargarPacientes()" class="btn-primary px-6 py-3">
+              <i class="fas fa-search mr-2"></i>
+              Buscar
+            </button>
+          </div>
+        </div>
+        
+        <!-- Lista de pacientes -->
+        <div id="lista-pacientes" class="space-y-4 max-h-[500px] overflow-auto"></div>
+        
+        <!-- Estado vacío -->
+        <div id="estado-vacio" class="text-center py-12 hidden">
+          <i class="fas fa-user-slash text-6xl text-gray-300 mb-4"></i>
+          <p class="text-gray-500 text-lg">No se encontraron pacientes</p>
+          <p class="text-gray-400 text-sm">Intenta con otros términos de búsqueda</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer con licencia -->
+  <footer class="bg-gray-900 text-white py-8 mt-16">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center">
+        <div class="flex items-center justify-center space-x-2 mb-4">
+          <i class="fas fa-heart text-red-500"></i>
+          <span class="text-lg font-semibold">Sistema de Gestión de Consultorio</span>
+        </div>
+        <p class="text-gray-400 mb-2">Desarrollado con ❤️ para mejorar la atención médica</p>
+        <div class="border-t border-gray-700 pt-4">
+          <p class="text-sm text-gray-500">
+            © 2025 Consultorio Colom-Bobbiesi. Desarrollado por <span class="font-semibold text-white">Nicolas Fernandez</span>
+          </p>
+          <p class="text-xs text-gray-600 mt-1">
+            Sistema desarrollado para la gestión integral de consultorios médicos
+          </p>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // Variable para almacenar el DNI del último paciente registrado
+    let ultimoPacienteRegistrado = null;
+    
+    // Función para calcular la edad
+    function calcularEdad(fechaNacimiento) {
+      if (!fechaNacimiento) return '';
+      
+      const hoy = new Date();
+      const fechaNac = new Date(fechaNacimiento);
+      let edad = hoy.getFullYear() - fechaNac.getFullYear();
+      const mesActual = hoy.getMonth();
+      const mesNacimiento = fechaNac.getMonth();
+      
+      if (mesActual < mesNacimiento || (mesActual === mesNacimiento && hoy.getDate() < fechaNac.getDate())) {
+        edad--;
+      }
+      
+      return edad >= 0 ? edad : '';
+    }
+    
+    // Función para validar DNI
+    function validarDNI(dni) {
+      const dniStr = dni.toString().trim();
+      return /^\d{7,8}$/.test(dniStr);
+    }
+    
+    // Función para validar celular
+    function validarCelular(celular) {
+      const celularStr = celular.toString().trim();
+      return /^[\d\-\s\(\)\+]{8,15}$/.test(celularStr);
+    }
+    
+    // Función para mostrar errores
+    function mostrarError(campo, mensaje) {
+      const errorElement = document.getElementById(`error-${campo}`);
+      if (errorElement) {
+        errorElement.textContent = mensaje;
+        errorElement.classList.remove('hidden');
+      }
+      const inputElement = document.getElementById(campo);
+      if (inputElement) {
+        inputElement.classList.add('border-red-500');
+        inputElement.classList.remove('border-gray-300');
+      }
+    }
+    
+    // Función para limpiar errores
+    function limpiarError(campo) {
+      const errorElement = document.getElementById(`error-${campo}`);
+      if (errorElement) {
+        errorElement.textContent = '';
+        errorElement.classList.add('hidden');
+      }
+      const inputElement = document.getElementById(campo);
+      if (inputElement) {
+        inputElement.classList.remove('border-red-500');
+        inputElement.classList.add('border-gray-300');
+      }
+    }
+    
+    // Función para validar formulario
+    function validarFormulario() {
+      let esValido = true;
+      
+      // Limpiar errores previos
+      ['nombre', 'apellido', 'dni', 'fecha_nacimiento', 'obra_social', 'numero_obra_social', 'celular'].forEach(limpiarError);
+      
+      // Validar campos obligatorios
+      const campos = {
+        nombre: document.getElementById('nombre').value.trim(),
+        apellido: document.getElementById('apellido').value.trim(),
+        dni: document.getElementById('dni').value.trim(),
+        fecha_nacimiento: document.getElementById('fecha_nacimiento').value,
+        obra_social: document.getElementById('obra_social').value.trim(),
+        numero_obra_social: document.getElementById('numero_obra_social').value.trim(),
+        celular: document.getElementById('celular').value.trim()
+      };
+      
+      // Validar campos vacíos
+      Object.entries(campos).forEach(([campo, valor]) => {
+        if (!valor) {
+          mostrarError(campo, 'Este campo es obligatorio');
+          esValido = false;
+        }
+      });
+      
+      // Validar DNI
+      if (campos.dni && !validarDNI(campos.dni)) {
+        mostrarError('dni', 'DNI debe tener entre 7 y 8 dígitos');
+        esValido = false;
+      }
+      
+      // Validar celular
+      if (campos.celular && !validarCelular(campos.celular)) {
+        mostrarError('celular', 'Formato de celular inválido');
+        esValido = false;
+      }
+      
+      // Validar fecha de nacimiento
+      if (campos.fecha_nacimiento) {
+        const fechaNac = new Date(campos.fecha_nacimiento);
+        const hoy = new Date();
+        if (fechaNac >= hoy) {
+          mostrarError('fecha_nacimiento', 'La fecha de nacimiento debe ser anterior a hoy');
+          esValido = false;
+        }
+      }
+      
+      return esValido;
+    }
+    // Función para ir a la agenda con el paciente preseleccionado
+    function irAAgenda() {
+      if (ultimoPacienteRegistrado) {
+        // Redirigir a la agenda con el DNI como parámetro
+        window.location.href = `/agenda?dni=${ultimoPacienteRegistrado}`;
+      } else {
+        window.location.href = '/agenda';
+      }
+    }
+    
+    // Función para registrar otro paciente
+    function registrarOtroPaciente() {
+      limpiarFormulario();
+      document.getElementById('acciones-post-registro').classList.add('hidden');
+    }
+    
+    // Función para ver la lista de pacientes
+    function verListaPacientes() {
+      cargarPacientes();
+      document.getElementById('acciones-post-registro').classList.add('hidden');
+    }
+    // Event listeners para validación en tiempo real
+    document.addEventListener('DOMContentLoaded', function() {
+      const fechaNacInput = document.getElementById('fecha_nacimiento');
+      const edadInput = document.getElementById('edad');
+      const dniInput = document.getElementById('dni');
+      const celularInput = document.getElementById('celular');
+      const buscarInput = document.getElementById('buscar');
+      
+      // Calcular edad automáticamente
+      fechaNacInput.addEventListener('change', function() {
+        const edad = calcularEdad(this.value);
+        edadInput.value = edad !== '' ? edad + ' años' : '';
+        limpiarError('fecha_nacimiento');
+      });
+      
+      // Validar DNI en tiempo real
+      dniInput.addEventListener('input', function() {
+        const dni = this.value.trim();
+        if (dni && !validarDNI(dni)) {
+          mostrarError('dni', 'DNI debe tener entre 7 y 8 dígitos');
+        } else {
+          limpiarError('dni');
+        }
+      });
+      
+      // Validar celular en tiempo real
+      celularInput.addEventListener('input', function() {
+        const celular = this.value.trim();
+        if (celular && !validarCelular(celular)) {
+          mostrarError('celular', 'Formato de celular inválido');
+        } else {
+          limpiarError('celular');
+        }
+      });
+      
+      // Búsqueda en tiempo real
+      buscarInput.addEventListener('input', function() {
+        clearTimeout(this.searchTimeout);
+        this.searchTimeout = setTimeout(() => {
+          cargarPacientes();
+        }, 300);
+      });
+      
+      // Limpiar errores al escribir en campos
+      ['nombre', 'apellido', 'obra_social', 'numero_obra_social'].forEach(campo => {
+        document.getElementById(campo).addEventListener('input', () => limpiarError(campo));
+      });
+    });
+
+    async function cargarPacientes() {
+      const filtro = document.getElementById("buscar").value.trim().toLowerCase();
+      const lista = document.getElementById("lista-pacientes");
+      const estadoVacio = document.getElementById("estado-vacio");
+      lista.innerHTML = "";
+
+      try {
+        const response = await fetch("/api/pacientes");
+        const pacientes = await response.json();
+
+        const pacientesFiltrados = pacientes.filter(p =>
+          !filtro ||
+          p.dni.includes(filtro) ||
+          p.nombre.toLowerCase().includes(filtro) ||
+          p.apellido.toLowerCase().includes(filtro)
+        );
+
+        if (pacientesFiltrados.length === 0) {
+          estadoVacio.classList.remove('hidden');
+          return;
+        }
+
+        estadoVacio.classList.add('hidden');
+
+        pacientesFiltrados.forEach(p => {
+          const div = document.createElement("div");
+          const esIncompleto = p.incompleto;
+          const borderColor = esIncompleto ? "border-orange-300" : "border-gray-200";
+          const bgColor = esIncompleto ? "bg-orange-50" : "bg-white";
+          
+          div.className = `${bgColor} border ${borderColor} rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow duration-200`;
+          div.innerHTML = `
+            <div class="flex items-start justify-between">
+              <div class="flex-1">
+                <div class="flex items-center space-x-3 mb-3">
+                  <div class="${esIncompleto ? 'bg-orange-500' : 'bg-primary'} p-2 rounded-full">
+                    <i class="fas fa-user text-white text-sm"></i>
+                  </div>
+                  <div>
+                    <div class="flex items-center space-x-2">
+                      <h3 class="font-bold text-lg text-gray-900">${p.nombre} ${p.apellido}</h3>
+                      ${esIncompleto ? '<span class="bg-orange-100 text-orange-800 px-2 py-1 rounded-full text-xs font-medium">Datos Pendientes</span>' : ''}
+                    </div>
+                    <p class="text-sm text-gray-600">DNI: ${p.dni}</p>
+                  </div>
+                </div>
+                
+                <div class="grid md:grid-cols-2 gap-4 text-sm">
+                  <div class="flex items-center space-x-2">
+                    <i class="fas fa-birthday-cake text-gray-400"></i>
+                    <span class="text-gray-600">${p.edad ? p.edad + ' años' : 'Edad no disponible'}</span>
+                  </div>
+                  <div class="flex items-center space-x-2">
+                    <i class="fas fa-phone text-gray-400"></i>
+                    <span class="text-gray-600">${p.celular}</span>
+                  </div>
+                  <div class="flex items-center space-x-2 md:col-span-2">
+                    <i class="fas fa-hospital text-gray-400"></i>
+                    <span class="text-gray-600">${p.obra_social} - ${p.numero_obra_social}</span>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="flex flex-col space-y-2 ml-4">
+                <button onclick='editarPaciente(${JSON.stringify(p)})' 
+                        class="btn-secondary text-sm px-3 py-2">
+                  <i class="fas fa-edit mr-1"></i>
+                  Editar
+                </button>
+                <button onclick='eliminarPaciente("${p.dni}", "${p.nombre} ${p.apellido}")' 
+                        class="btn-danger text-sm px-3 py-2">
+                  <i class="fas fa-trash mr-1"></i>
+                  Eliminar
+                </button>
+              </div>
+            </div>
+          `;
+          lista.appendChild(div);
+        });
+      } catch (error) {
+        console.error('Error al cargar pacientes:', error);
+        lista.innerHTML = `
+          <div class="text-center py-8">
+            <i class="fas fa-exclamation-triangle text-4xl text-red-500 mb-4"></i>
+            <p class="text-red-600">Error al cargar los pacientes</p>
+          </div>
+        `;
+      }
+    }
+
+    function editarPaciente(p) {
+      document.getElementById("form-title").innerText = "Modificar Paciente";
+      document.getElementById("btn-text").innerText = "Actualizar Paciente";
+      document.getElementById("dni").value = p.dni;
+      document.getElementById("dni").readOnly = false; // Permitir editar DNI
+      document.getElementById("nombre").value = p.nombre;
+      document.getElementById("apellido").value = p.apellido;
+      document.getElementById("fecha_nacimiento").value = p.fecha_nacimiento || '';
+      document.getElementById("edad").value = p.edad ? p.edad + ' años' : '';
+      document.getElementById("obra_social").value = p.obra_social;
+      document.getElementById("numero_obra_social").value = p.numero_obra_social;
+      document.getElementById("celular").value = p.celular;
+      // Guardar el DNI original para la actualización
+      document.getElementById("form-paciente").dataset.dniOriginal = p.dni;
+      
+      // Limpiar errores
+      ['nombre', 'apellido', 'dni', 'fecha_nacimiento', 'obra_social', 'numero_obra_social', 'celular'].forEach(limpiarError);
+      
+      // Scroll al formulario
+      document.getElementById("form-paciente").scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function limpiarFormulario() {
+      document.getElementById("form-title").innerText = "Registrar Paciente";
+      document.getElementById("btn-text").innerText = "Guardar Paciente";
+      document.getElementById("form-paciente").reset();
+      document.getElementById("dni").readOnly = false;
+      document.getElementById("mensaje").innerText = "";
+      document.getElementById("mensaje").classList.add('hidden');
+      document.getElementById('acciones-post-registro').classList.add('hidden');
+      // Limpiar el DNI original
+      document.getElementById("form-paciente").removeAttribute('data-dni-original');
+      ultimoPacienteRegistrado = null;
+      
+      // Limpiar errores
+      ['nombre', 'apellido', 'dni', 'fecha_nacimiento', 'obra_social', 'numero_obra_social', 'celular'].forEach(limpiarError);
+    }
+
+    async function eliminarPaciente(dni, nombreCompleto) {
+      if (!confirm(`¿Está seguro que desea eliminar al paciente ${nombreCompleto} (DNI: ${dni})?\n\nEsta acción no se puede deshacer.`)) {
+        return;
+      }
+
+      try {
+        const respuesta = await fetch(`/api/pacientes/${dni}`, {
+          method: "DELETE",
+        });
+
+        const resultado = await respuesta.json();
+        
+        if (respuesta.ok) {
+          alert("Paciente eliminado correctamente");
+          cargarPacientes(); // Recargar la lista
+          // Si el paciente eliminado está siendo editado, limpiar el formulario
+          const dniOriginal = document.getElementById("form-paciente").dataset.dniOriginal;
+          if (dniOriginal === dni) {
+            limpiarFormulario();
+          }
+        } else {
+          alert("Error: " + resultado.error);
+        }
+      } catch (error) {
+        alert("Error al eliminar el paciente: " + error.message);
+      }
+    }
+
+    document.getElementById("form-paciente").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      
+      // Validar formulario antes de enviar
+      if (!validarFormulario()) {
+        return;
+      }
+      
+      const fechaNacimiento = document.getElementById("fecha_nacimiento").value;
+      const edad = calcularEdad(fechaNacimiento);
+
+      const datos = {
+        dni: document.getElementById("dni").value.trim(),
+        nombre: document.getElementById("nombre").value.trim(),
+        apellido: document.getElementById("apellido").value.trim(),
+        fecha_nacimiento: fechaNacimiento,
+        edad: edad,
+        obra_social: document.getElementById("obra_social").value.trim(),
+        numero_obra_social: document.getElementById("numero_obra_social").value.trim(),
+        celular: document.getElementById("celular").value.trim(),
+      };
+
+      const dniOriginal = document.getElementById("form-paciente").dataset.dniOriginal;
+      const metodo = dniOriginal ? "PUT" : "POST";
+      const url = metodo === "PUT" ? `/api/pacientes/${dniOriginal}` : "/api/pacientes";
+
+      // Mostrar loading en el botón
+      const submitBtn = e.target.querySelector('button[type="submit"]');
+      const originalText = submitBtn.innerHTML;
+      submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Guardando...';
+      submitBtn.disabled = true;
+
+      try {
+        const respuesta = await fetch(url, {
+          method: metodo,
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(datos),
+        });
+
+        const resultado = await respuesta.json();
+        const mensaje = document.getElementById("mensaje");
+        
+        if (respuesta.ok) {
+          mensaje.innerHTML = `
+            <div class="flex items-center space-x-2">
+              <i class="fas fa-check-circle text-green-500"></i>
+              <span class="text-green-800 font-semibold">${resultado.mensaje}</span>
+            </div>
+          `;
+          mensaje.className = "mt-4 p-4 rounded-lg bg-green-50 border border-green-200";
+          mensaje.classList.remove('hidden');
+          
+          cargarPacientes();
+          
+          // Si es un nuevo paciente (POST), mostrar opciones post-registro
+          if (metodo === "POST") {
+            ultimoPacienteRegistrado = datos.dni;
+            document.getElementById("form-paciente").reset();
+            document.getElementById("dni").readOnly = false;
+            document.getElementById('acciones-post-registro').classList.remove('hidden');
+          } else {
+            // Si es edición, limpiar normalmente
+            setTimeout(() => limpiarFormulario(), 2000);
+          }
+
+        } else {
+          mensaje.innerHTML = `
+            <div class="flex items-center space-x-2">
+              <i class="fas fa-exclamation-circle text-red-500"></i>
+              <span class="text-red-800 font-semibold">${resultado.error || "Error"}</span>
+            </div>
+          `;
+          mensaje.className = "mt-4 p-4 rounded-lg bg-red-50 border border-red-200";
+          mensaje.classList.remove('hidden');
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        const mensaje = document.getElementById("mensaje");
+        mensaje.innerHTML = `
+          <div class="flex items-center space-x-2">
+            <i class="fas fa-exclamation-triangle text-red-500"></i>
+            <span class="text-red-800 font-semibold">Error de conexión. Intente nuevamente.</span>
+          </div>
+        `;
+        mensaje.className = "mt-4 p-4 rounded-lg bg-red-50 border border-red-200";
+        mensaje.classList.remove('hidden');
+      } finally {
+        // Restaurar botón
+        submitBtn.innerHTML = originalText;
+        submitBtn.disabled = false;
+      }
+    });
+
+    cargarPacientes();
+  </script>
+
+  <style>
+    /* Estilos para campos de entrada */
+    .input-field {
+      width: 100%;
+      padding: 0.75rem 1rem;
+      border: 2px solid #e5e7eb;
+      border-radius: 0.5rem;
+      font-size: 1rem;
+      transition: all 0.2s ease;
+      background-color: #ffffff;
+    }
+    
+    .input-field:focus {
+      outline: none;
+      border-color: #2563eb;
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+    
+    .input-field:invalid {
+      border-color: #dc2626;
+    }
+    
+    /* Estilos para botones */
+    .btn-primary {
+      background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+      color: white;
+      padding: 0.75rem 1.5rem;
+      border: none;
+      border-radius: 0.5rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .btn-primary:hover:not(:disabled) {
+      background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+    }
+    
+    .btn-primary:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+    
+    .btn-secondary {
+      background: #6b7280;
+      color: white;
+      padding: 0.75rem 1.5rem;
+      border: none;
+      border-radius: 0.5rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .btn-secondary:hover {
+      background: #4b5563;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(107, 114, 128, 0.3);
+    }
+    
+    .btn-success {
+      background: linear-gradient(135deg, #059669 0%, #047857 100%);
+      color: white;
+      padding: 0.75rem 1.5rem;
+      border: none;
+      border-radius: 0.5rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .btn-success:hover {
+      background: linear-gradient(135deg, #047857 0%, #065f46 100%);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(5, 150, 105, 0.3);
+    }
+    
+    .btn-info {
+      background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+      color: white;
+      padding: 0.75rem 1.5rem;
+      border: none;
+      border-radius: 0.5rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .btn-info:hover {
+      background: linear-gradient(135deg, #6d28d9 0%, #5b21b6 100%);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);
+    }
+    
+    .btn-danger {
+      background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+      color: white;
+      padding: 0.5rem 1rem;
+      border: none;
+      border-radius: 0.375rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .btn-danger:hover {
+      background: linear-gradient(135deg, #b91c1c 0%, #991b1b 100%);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
+    }
+    
+    /* Estilos para mensajes de error */
+    .error-message {
+      color: #dc2626;
+      font-size: 0.875rem;
+      margin-top: 0.25rem;
+      display: none;
+    }
+    
+    .error-message:not(.hidden) {
+      display: block;
+    }
+    
+    /* Animaciones */
+    #acciones-post-registro {
+      animation: slideIn 0.5s ease-out;
+    }
+    
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateY(-20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    /* Efectos hover para tarjetas de pacientes */
+    .paciente-card {
+      transition: all 0.2s ease;
+    }
+    
+    .paciente-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+    }
+    
+    /* Scrollbar personalizado */
+    .overflow-auto::-webkit-scrollbar {
+      width: 6px;
+    }
+    
+    .overflow-auto::-webkit-scrollbar-track {
+      background: #f1f5f9;
+      border-radius: 3px;
+    }
+    
+    .overflow-auto::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 3px;
+    }
+    
+    .overflow-auto::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+    
+    /* Responsive */
+    @media (max-width: 768px) {
+      .grid.md\\:grid-cols-2 {
+        grid-template-columns: 1fr;
+      }
+      
+      .flex.flex-col.sm\\:flex-row {
+        flex-direction: column;
+      }
+    }
+    
+    .hidden {
+      display: none !important;
+    }
+  </style>
+</body>
+</html>
