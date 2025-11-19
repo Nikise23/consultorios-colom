@@ -1,0 +1,924 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reservar Turno - Consultorio Médico</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+  <style>
+    body {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    .reserva-container {
+      max-width: 800px;
+      margin: 2rem auto;
+      padding: 2rem;
+      width: 100%;
+    }
+    
+    @media (max-width: 768px) {
+      .reserva-container {
+        margin: 1rem auto;
+        padding: 1rem;
+      }
+    }
+    
+    @media (max-width: 576px) {
+      .reserva-container {
+        margin: 0.5rem auto;
+        padding: 0.5rem;
+      }
+    }
+    .card {
+      border: none;
+      border-radius: 15px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    }
+    .card-header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border-radius: 15px 15px 0 0 !important;
+      padding: 1.5rem;
+    }
+    .step-indicator {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 2rem;
+      position: relative;
+    }
+    .step {
+      flex: 1;
+      text-align: center;
+      position: relative;
+      z-index: 2;
+    }
+    .step-number {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: #e9ecef;
+      color: #6c757d;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 0.5rem;
+      font-weight: bold;
+      transition: all 0.3s;
+    }
+    .step.active .step-number {
+      background: #667eea;
+      color: white;
+    }
+    .step.completed .step-number {
+      background: #28a745;
+      color: white;
+    }
+    .step-label {
+      font-size: 0.85rem;
+      color: #6c757d;
+    }
+    .step.active .step-label {
+      color: #667eea;
+      font-weight: bold;
+    }
+    .step-line {
+      position: absolute;
+      top: 20px;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: #e9ecef;
+      z-index: 1;
+    }
+    .form-section {
+      display: none;
+    }
+    .form-section.active {
+      display: block;
+      animation: fadeIn 0.3s;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border: none;
+    }
+    .btn-primary:hover {
+      background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    }
+    .horario-btn {
+      margin: 0.25rem;
+      min-width: 80px;
+      flex: 0 0 auto;
+    }
+    
+    #horarios-container {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      align-items: center;
+      gap: 0.5rem;
+      min-height: 60px;
+      width: 100%;
+    }
+    
+    #horarios-container .d-flex {
+      width: 100%;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    #horarios-container .d-flex .horario-btn {
+      flex: 0 0 auto;
+      margin: 0;
+    }
+    
+    #horarios-container p {
+      width: 100%;
+      text-align: center;
+      margin: 0;
+      padding: 1rem 0;
+    }
+    .horario-btn.selected {
+      background: #28a745;
+      border-color: #28a745;
+    }
+    .alert-success {
+      border-left: 4px solid #28a745;
+    }
+    .loading {
+      text-align: center;
+      padding: 2rem;
+    }
+    .spinner-border {
+      width: 3rem;
+      height: 3rem;
+    }
+    
+    /* Responsive para móviles y tablets */
+    @media (max-width: 768px) {
+      .reserva-container {
+        margin: 1rem auto;
+        padding: 1rem;
+      }
+      
+      .card-body {
+        padding: 1.5rem !important;
+      }
+      
+      .step-indicator {
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-bottom: 1.5rem;
+      }
+      
+      .step {
+        flex: 0 0 calc(50% - 0.25rem);
+        min-width: calc(50% - 0.25rem);
+      }
+      
+      .step-label {
+        font-size: 0.7rem;
+      }
+      
+      .step-number {
+        width: 35px;
+        height: 35px;
+        font-size: 0.9rem;
+      }
+      
+      .card-header {
+        padding: 1rem;
+      }
+      
+      .card-header h2 {
+        font-size: 1.5rem;
+      }
+      
+      .card-header p {
+        font-size: 0.9rem;
+      }
+      
+      .form-section h4 {
+        font-size: 1.25rem;
+      }
+      
+      .btn {
+        font-size: 0.95rem;
+        padding: 0.6rem 1rem;
+      }
+      
+      .horario-btn {
+        min-width: 70px;
+        font-size: 0.85rem;
+        padding: 0.5rem 0.75rem;
+      }
+    }
+    
+    @media (max-width: 576px) {
+      body {
+        padding: 0.5rem;
+      }
+      
+      .reserva-container {
+        margin: 0.5rem auto;
+        padding: 0.5rem;
+      }
+      
+      .card-body {
+        padding: 1rem !important;
+      }
+      
+      .step-indicator {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.75rem;
+      }
+      
+      .step {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        text-align: left;
+        padding: 0.5rem;
+        background: #f8f9fa;
+        border-radius: 8px;
+      }
+      
+      .step.active {
+        background: rgba(102, 126, 234, 0.1);
+      }
+      
+      .step-number {
+        width: 40px;
+        height: 40px;
+        margin: 0;
+        flex-shrink: 0;
+      }
+      
+      .step-label {
+        font-size: 0.85rem;
+        margin: 0;
+      }
+      
+      .step-line {
+        display: none;
+      }
+      
+      .card-header {
+        padding: 1rem 0.75rem;
+      }
+      
+      .card-header h2 {
+        font-size: 1.25rem;
+      }
+      
+      .card-header p {
+        font-size: 0.85rem;
+        margin-top: 0.5rem;
+      }
+      
+      .form-section h4 {
+        font-size: 1.1rem;
+        margin-bottom: 1rem;
+      }
+      
+      .form-label {
+        font-size: 0.9rem;
+      }
+      
+      .form-control {
+        font-size: 0.95rem;
+        padding: 0.6rem 0.75rem;
+      }
+      
+      .btn {
+        font-size: 0.9rem;
+        padding: 0.6rem 0.75rem;
+        min-height: 44px;
+      }
+      
+      .btn-primary {
+        width: 100%;
+      }
+      
+      #horarios-container {
+        gap: 0.5rem;
+        padding: 0.75rem 0;
+        justify-content: center;
+      }
+      
+      #horarios-container .d-flex {
+        justify-content: center;
+        align-items: center;
+        gap: 0.5rem;
+        width: 100%;
+      }
+      
+      .horario-btn {
+        min-width: 80px;
+        width: auto;
+        max-width: 110px;
+        font-size: 0.95rem;
+        padding: 0.7rem 0.75rem;
+        margin: 0;
+        flex: 0 0 auto;
+        text-align: center;
+        white-space: nowrap;
+        border-radius: 0.5rem;
+      }
+      
+      #horarios-container p {
+        width: 100%;
+        text-align: center;
+        padding: 1rem;
+      }
+      
+      .card.bg-light {
+        padding: 1rem !important;
+      }
+      
+      .card.bg-light p {
+        margin-bottom: 0.5rem;
+        font-size: 0.9rem;
+      }
+      
+      .d-flex.gap-2 {
+        flex-direction: column;
+      }
+      
+      .d-flex.gap-2 .btn {
+        width: 100%;
+      }
+      
+      #especialidades-container .row,
+      #horarios-container .row {
+        margin: 0;
+        justify-content: center;
+      }
+      
+      #especialidades-container .col-12 {
+        padding: 0.5rem;
+        margin-bottom: 0.5rem;
+      }
+      
+      #horarios-container p {
+        width: 100%;
+        text-align: center;
+        padding: 1rem;
+        margin: 0;
+      }
+      
+      .list-group {
+        margin: 0;
+      }
+      
+      .list-group-item {
+        text-align: center;
+      }
+      
+      .list-group-item {
+        padding: 0.75rem;
+        font-size: 0.9rem;
+      }
+    }
+    
+    @media (min-width: 577px) and (max-width: 768px) {
+      .reserva-container {
+        max-width: 90%;
+        padding: 1.5rem;
+      }
+      
+      .step-indicator {
+        gap: 0.5rem;
+      }
+      
+      .step {
+        flex: 1;
+      }
+      
+      .step-label {
+        font-size: 0.75rem;
+      }
+      
+      .step-number {
+        width: 38px;
+        height: 38px;
+      }
+    }
+    
+    /* Mejoras de accesibilidad táctil */
+    @media (max-width: 768px) {
+      .btn, .horario-btn, .list-group-item {
+        min-height: 44px;
+        touch-action: manipulation;
+      }
+      
+      * {
+        -webkit-tap-highlight-color: rgba(102, 126, 234, 0.2);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="reserva-container">
+      <div class="card">
+        <div class="card-header text-center">
+          <h2 class="mb-0">
+            <i class="bi bi-calendar-check"></i> Reservar Turno
+          </h2>
+          <p class="mb-0 mt-2">Complete los datos para reservar su turno médico</p>
+        </div>
+        <div class="card-body p-4">
+          <!-- Indicador de pasos -->
+          <div class="step-indicator">
+            <div class="step-line"></div>
+            <div class="step active" id="step1-indicator">
+              <div class="step-number">1</div>
+              <div class="step-label">Datos Personales</div>
+            </div>
+            <div class="step" id="step2-indicator">
+              <div class="step-number">2</div>
+              <div class="step-label">Especialidad</div>
+            </div>
+            <div class="step" id="step2b-indicator">
+              <div class="step-number">3</div>
+              <div class="step-label">Médico</div>
+            </div>
+            <div class="step" id="step3-indicator">
+              <div class="step-number">4</div>
+              <div class="step-label">Fecha y Hora</div>
+            </div>
+            <div class="step" id="step4-indicator">
+              <div class="step-number">5</div>
+              <div class="step-label">Confirmación</div>
+            </div>
+          </div>
+
+          <!-- Alerta de éxito/error -->
+          <div id="alert-container"></div>
+
+               <!-- Paso 1: Datos Personales -->
+               <div class="form-section active" id="step1">
+                 <h4 class="mb-4"><i class="bi bi-person"></i> Datos Personales</h4>
+                 <div class="mb-3">
+                   <label for="dni" class="form-label">DNI *</label>
+                   <input type="text" class="form-control" id="dni" placeholder="12345678" maxlength="8" required>
+                   <small class="text-muted">Solo números, 7 u 8 dígitos</small>
+                 </div>
+                 <div class="mb-3">
+                   <label for="email" class="form-label">Email *</label>
+                   <input type="email" class="form-control" id="email" placeholder="ejemplo@email.com" required>
+                   <small class="text-muted">Se enviará la confirmación a este email</small>
+                 </div>
+                 
+                 <!-- Campos Opcionales (Colapsables) -->
+                 <div class="mb-3">
+                   <button type="button" class="btn btn-link p-0 text-decoration-none" onclick="toggleCamposOpcionales()">
+                     <i class="bi bi-chevron-down" id="icon-campos-opcionales"></i>
+                     <span id="texto-campos-opcionales">Completar más datos (opcional)</span>
+                   </button>
+                 </div>
+                 
+                 <div id="campos-opcionales" style="display: none;" class="border-top pt-3 mt-3">
+                   <div class="mb-3">
+                     <label for="nombre" class="form-label">Nombre</label>
+                     <input type="text" class="form-control" id="nombre" placeholder="Juan">
+                     <small class="text-muted">Opcional - Puede completarse en recepción</small>
+                   </div>
+                   <div class="mb-3">
+                     <label for="apellido" class="form-label">Apellido</label>
+                     <input type="text" class="form-control" id="apellido" placeholder="Pérez">
+                     <small class="text-muted">Opcional - Puede completarse en recepción</small>
+                   </div>
+                   <div class="mb-3">
+                     <label for="celular" class="form-label">Celular</label>
+                     <input type="text" class="form-control" id="celular" placeholder="11 1234-5678">
+                     <small class="text-muted">Opcional - Para contactos de emergencia</small>
+                   </div>
+                   <div class="mb-3">
+                     <label for="fecha_nacimiento" class="form-label">Fecha de Nacimiento</label>
+                     <input type="date" class="form-control" id="fecha_nacimiento">
+                     <small class="text-muted">Opcional</small>
+                   </div>
+                 </div>
+                 
+                 <button class="btn btn-primary w-100 mt-3" onclick="siguientePaso(2)">
+                   Continuar <i class="bi bi-arrow-right"></i>
+                 </button>
+               </div>
+
+          <!-- Paso 2: Especialidad -->
+          <div class="form-section" id="step2">
+            <h4 class="mb-4"><i class="bi bi-tag"></i> Seleccione Especialidad</h4>
+            <div id="especialidades-container" class="loading">
+              <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Cargando...</span>
+              </div>
+            </div>
+            <div class="mt-3 d-flex gap-2">
+              <button class="btn btn-outline-secondary" onclick="anteriorPaso(1)">
+                <i class="bi bi-arrow-left"></i> Atrás
+              </button>
+            </div>
+          </div>
+
+          <!-- Paso 2b: Médico -->
+          <div class="form-section" id="step2b">
+            <h4 class="mb-4"><i class="bi bi-person-badge"></i> Seleccione Médico</h4>
+            <div id="medicos-container" class="loading">
+              <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Cargando...</span>
+              </div>
+            </div>
+            <div class="mt-3 d-flex gap-2">
+              <button class="btn btn-outline-secondary" onclick="anteriorPaso(2)">
+                <i class="bi bi-arrow-left"></i> Atrás (Cambiar Especialidad)
+              </button>
+            </div>
+          </div>
+
+          <!-- Paso 3: Fecha y Hora -->
+          <div class="form-section" id="step3">
+            <h4 class="mb-4"><i class="bi bi-calendar-event"></i> Seleccione Fecha y Hora</h4>
+            <div class="mb-3">
+              <label for="fecha" class="form-label">Fecha *</label>
+              <input type="date" class="form-control" id="fecha" required>
+              <small class="text-muted">No se pueden reservar turnos en fechas pasadas</small>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Horarios Disponibles</label>
+              <div id="horarios-container" class="d-flex flex-wrap justify-content-center">
+                <p class="text-muted w-100 text-center">Seleccione primero una fecha</p>
+              </div>
+            </div>
+            <div class="mt-3 d-flex gap-2">
+              <button class="btn btn-outline-secondary" onclick="anteriorPaso('2b')">
+                <i class="bi bi-arrow-left"></i> Atrás
+              </button>
+            </div>
+          </div>
+
+          <!-- Paso 4: Confirmación -->
+          <div class="form-section" id="step4">
+            <h4 class="mb-4"><i class="bi bi-check-circle"></i> Confirmar Reserva</h4>
+            <div class="card bg-light mb-3">
+              <div class="card-body">
+                <h5>Resumen de su turno:</h5>
+                <p><strong>DNI:</strong> <span id="confirm-dni"></span></p>
+                <p><strong>Email:</strong> <span id="confirm-email"></span></p>
+                <p><strong>Especialidad:</strong> <span id="confirm-especialidad"></span></p>
+                <p><strong>Médico:</strong> <span id="confirm-medico"></span></p>
+                <p><strong>Fecha:</strong> <span id="confirm-fecha"></span></p>
+                <p><strong>Hora:</strong> <span id="confirm-hora"></span></p>
+              </div>
+            </div>
+            <div class="alert alert-info">
+              <i class="bi bi-info-circle"></i> 
+              Se enviará un email de confirmación a la dirección proporcionada.
+            </div>
+            <div class="mt-3 d-flex gap-2">
+              <button class="btn btn-outline-secondary" onclick="anteriorPaso(3)">
+                <i class="bi bi-arrow-left"></i> Atrás
+              </button>
+              <button class="btn btn-primary flex-grow-1" onclick="confirmarReserva()">
+                <i class="bi bi-check-circle"></i> Confirmar Reserva
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    let datosReserva = {
+      dni: '',
+      email: '',
+      nombre: '',
+      apellido: '',
+      celular: '',
+      fecha_nacimiento: '',
+      especialidad: '',
+      medico: '',
+      fecha: '',
+      hora: ''
+    };
+    
+    function toggleCamposOpcionales() {
+      const campos = document.getElementById('campos-opcionales');
+      const icon = document.getElementById('icon-campos-opcionales');
+      const texto = document.getElementById('texto-campos-opcionales');
+      
+      if (campos.style.display === 'none') {
+        campos.style.display = 'block';
+        icon.className = 'bi bi-chevron-up';
+        texto.textContent = 'Ocultar campos opcionales';
+      } else {
+        campos.style.display = 'none';
+        icon.className = 'bi bi-chevron-down';
+        texto.textContent = 'Completar más datos (opcional)';
+      }
+    }
+
+    // Establecer fecha mínima (hoy)
+    document.getElementById('fecha').min = new Date().toISOString().split('T')[0];
+
+    // Cargar especialidades al iniciar
+    cargarEspecialidades();
+
+    function mostrarAlerta(mensaje, tipo = 'success') {
+      const container = document.getElementById('alert-container');
+      container.innerHTML = `
+        <div class="alert alert-${tipo} alert-dismissible fade show" role="alert">
+          ${mensaje}
+          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+      `;
+    }
+
+    function siguientePaso(paso) {
+      // Validar paso actual
+      if (paso === 2) {
+        const dni = document.getElementById('dni').value.trim();
+        const email = document.getElementById('email').value.trim();
+        
+        if (!dni || !email) {
+          mostrarAlerta('Por favor complete todos los campos', 'danger');
+          return;
+        }
+        
+        if (!dni.match(/^\d{7,8}$/)) {
+          mostrarAlerta('DNI inválido (solo números, 7 u 8 dígitos)', 'danger');
+          return;
+        }
+        
+        if (!email.includes('@') || !email.includes('.')) {
+          mostrarAlerta('Email inválido', 'danger');
+          return;
+        }
+        
+        datosReserva.dni = dni;
+        datosReserva.email = email;
+        
+        // Capturar campos opcionales si fueron completados
+        datosReserva.nombre = document.getElementById('nombre').value.trim() || '';
+        datosReserva.apellido = document.getElementById('apellido').value.trim() || '';
+        datosReserva.celular = document.getElementById('celular').value.trim() || '';
+        datosReserva.fecha_nacimiento = document.getElementById('fecha_nacimiento').value || '';
+      }
+      
+      cambiarPaso(paso);
+    }
+
+    function anteriorPaso(paso) {
+      cambiarPaso(paso);
+    }
+
+    function cambiarPaso(paso) {
+      // Ocultar todos los pasos
+      document.querySelectorAll('.form-section').forEach(section => {
+        section.classList.remove('active');
+      });
+      
+      // Mostrar paso actual
+      document.getElementById(`step${paso}`).classList.add('active');
+      
+      // Actualizar indicadores
+      const pasos = [1, 2, '2b', 3, 4];
+      const pasoIndex = pasos.indexOf(paso);
+      
+      pasos.forEach((p, index) => {
+        const indicatorId = `step${p}-indicator`;
+        const indicator = document.getElementById(indicatorId);
+        if (!indicator) return;
+        
+        if (index < pasoIndex) {
+          indicator.classList.remove('active');
+          indicator.classList.add('completed');
+        } else if (index === pasoIndex) {
+          indicator.classList.add('active');
+          indicator.classList.remove('completed');
+        } else {
+          indicator.classList.remove('active', 'completed');
+        }
+      });
+      
+      // Acciones específicas por paso
+      if (paso === '2b') {
+        cargarMedicos();
+      } else if (paso === 4) {
+        actualizarResumen();
+      }
+    }
+
+    async function cargarEspecialidades() {
+      try {
+        const response = await fetch('/api/public/especialidades');
+        const especialidades = await response.json();
+        
+        const container = document.getElementById('especialidades-container');
+        if (especialidades.length === 0) {
+          container.innerHTML = '<p class="text-muted">No hay especialidades disponibles</p>';
+          return;
+        }
+        
+        container.innerHTML = '<div class="row g-3 justify-content-center"></div>';
+        const row = container.querySelector('.row');
+        
+        especialidades.forEach(esp => {
+          const col = document.createElement('div');
+          col.className = 'col-12 col-md-6';
+          const btn = document.createElement('button');
+          btn.className = 'btn btn-outline-primary w-100 p-3';
+          btn.innerHTML = `<i class="bi bi-tag-fill"></i><br>${esp}`;
+          btn.onclick = () => seleccionarEspecialidad(esp);
+          col.appendChild(btn);
+          row.appendChild(col);
+        });
+      } catch (error) {
+        mostrarAlerta('Error al cargar especialidades', 'danger');
+        console.error('Error cargando especialidades:', error);
+      }
+    }
+
+    function seleccionarEspecialidad(especialidad) {
+      datosReserva.especialidad = especialidad;
+      cambiarPaso('2b');
+    }
+
+    async function cargarMedicos() {
+      if (!datosReserva.especialidad) return;
+      
+      const container = document.getElementById('medicos-container');
+      container.innerHTML = '<div class="spinner-border text-primary" role="status"><span class="visually-hidden">Cargando...</span></div>';
+      
+      try {
+        const response = await fetch(`/api/public/medicos?especialidad=${encodeURIComponent(datosReserva.especialidad)}`);
+        const medicos = await response.json();
+        
+        if (medicos.length === 0) {
+          container.innerHTML = '<p class="text-muted">No hay médicos disponibles para esta especialidad</p>';
+          return;
+        }
+        
+        container.innerHTML = '<div class="list-group"></div>';
+        const listGroup = container.querySelector('.list-group');
+        
+        medicos.forEach(medico => {
+          const item = document.createElement('button');
+          item.className = 'list-group-item list-group-item-action';
+          item.innerHTML = `
+            <div class="d-flex w-100 justify-content-between">
+              <h5 class="mb-1"><i class="bi bi-person-badge"></i> ${medico.nombre}</h5>
+            </div>
+            <small>${medico.especialidad}</small>
+          `;
+          item.onclick = () => seleccionarMedico(medico.usuario, medico.nombre);
+          listGroup.appendChild(item);
+        });
+      } catch (error) {
+        container.innerHTML = '<p class="text-danger">Error al cargar médicos</p>';
+      }
+    }
+
+    function seleccionarMedico(usuario, nombre) {
+      datosReserva.medico = usuario;
+      datosReserva.medicoNombre = nombre;
+      cambiarPaso(3); // Paso 3 es fecha y hora
+    }
+
+    document.getElementById('fecha').addEventListener('change', async function() {
+      const fecha = this.value;
+      if (!fecha || !datosReserva.medico) return;
+      
+      datosReserva.fecha = fecha;
+      await cargarHorarios();
+    });
+
+    async function cargarHorarios() {
+      if (!datosReserva.medico || !datosReserva.fecha) return;
+      
+      const container = document.getElementById('horarios-container');
+      container.innerHTML = '<div class="w-100 text-center py-3"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Cargando...</span></div></div>';
+      
+      try {
+        const response = await fetch(`/api/public/turnos-disponibles?medico=${encodeURIComponent(datosReserva.medico)}&fecha=${datosReserva.fecha}`);
+        const horarios = await response.json();
+        
+        if (horarios.length === 0) {
+          container.innerHTML = '<p class="text-muted w-100 text-center py-3">No hay horarios disponibles para esta fecha</p>';
+          return;
+        }
+        
+        container.innerHTML = '<div class="d-flex flex-wrap justify-content-center align-items-center w-100" style="gap: 0.5rem;"></div>';
+        const flexContainer = container.querySelector('.d-flex');
+        
+        horarios.forEach(hora => {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'btn btn-outline-success horario-btn';
+          btn.textContent = hora;
+          btn.onclick = () => seleccionarHorario(hora);
+          flexContainer.appendChild(btn);
+        });
+      } catch (error) {
+        container.innerHTML = '<p class="text-danger">Error al cargar horarios</p>';
+      }
+    }
+
+    function seleccionarHorario(hora) {
+      datosReserva.hora = hora;
+      
+      // Remover selección anterior
+      document.querySelectorAll('.horario-btn').forEach(btn => {
+        btn.classList.remove('selected');
+      });
+      
+      // Marcar como seleccionado
+      event.target.classList.add('selected');
+      
+      // Continuar al siguiente paso después de un breve delay
+      setTimeout(() => {
+        cambiarPaso(4);
+      }, 500);
+    }
+
+    function actualizarResumen() {
+      document.getElementById('confirm-dni').textContent = datosReserva.dni;
+      document.getElementById('confirm-email').textContent = datosReserva.email;
+      document.getElementById('confirm-especialidad').textContent = datosReserva.especialidad;
+      document.getElementById('confirm-medico').textContent = datosReserva.medicoNombre || datosReserva.medico;
+      
+      // Formatear fecha correctamente (evitar problemas de zona horaria)
+      // Parsear la fecha manualmente para evitar conversión a UTC
+      const [año, mes, dia] = datosReserva.fecha.split('-');
+      const fechaObj = new Date(parseInt(año), parseInt(mes) - 1, parseInt(dia));
+      document.getElementById('confirm-fecha').textContent = fechaObj.toLocaleDateString('es-ES', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+      });
+      document.getElementById('confirm-hora').textContent = datosReserva.hora;
+    }
+
+    async function confirmarReserva() {
+      if (!datosReserva.dni || !datosReserva.email || !datosReserva.medico || !datosReserva.fecha || !datosReserva.hora) {
+        mostrarAlerta('Por favor complete todos los datos', 'danger');
+        return;
+      }
+      
+      const btn = event.target;
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Reservando...';
+      
+      try {
+        const response = await fetch('/api/public/reservar-turno', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(datosReserva)
+        });
+        
+        const resultado = await response.json();
+        
+        if (response.ok) {
+          mostrarAlerta(`
+            <h5><i class="bi bi-check-circle"></i> ¡Turno Reservado Exitosamente!</h5>
+            <p>${resultado.mensaje}</p>
+            <p class="mb-0">Revise su email para la confirmación.</p>
+          `, 'success');
+          
+          // Limpiar formulario
+          setTimeout(() => {
+            location.reload();
+          }, 3000);
+        } else {
+          mostrarAlerta(resultado.error || 'Error al reservar turno', 'danger');
+          btn.disabled = false;
+          btn.innerHTML = '<i class="bi bi-check-circle"></i> Confirmar Reserva';
+        }
+      } catch (error) {
+        mostrarAlerta('Error de conexión. Por favor intente nuevamente.', 'danger');
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-check-circle"></i> Confirmar Reserva';
+      }
+    }
+  </script>
+</body>
+</html>
+

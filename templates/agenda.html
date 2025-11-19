@@ -69,14 +69,14 @@
             <p class="text-gray-600">Asignación y administración de turnos</p>
           </div>
         </div>
-        <div class="flex space-x-3">
-          <button onclick="refrescarDatos()" class="bg-blue-100 hover:bg-blue-200 text-blue-700 px-4 py-2 rounded-lg transition-colors duration-200 flex items-center space-x-2">
+        <div class="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
+          <button onclick="refrescarDatos()" class="bg-blue-100 hover:bg-blue-200 text-blue-700 px-3 md:px-4 py-2 rounded-lg transition-colors duration-200 flex items-center justify-center space-x-2">
             <i class="fas fa-sync-alt"></i>
-            <span>Refrescar</span>
+            <span class="hidden sm:inline">Refrescar</span>
           </button>
-          <a href="/" class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg transition-colors duration-200 flex items-center space-x-2">
+          <a href="/secretaria" class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 md:px-4 py-2 rounded-lg transition-colors duration-200 flex items-center justify-center space-x-2">
             <i class="fas fa-arrow-left"></i>
-            <span>Volver al inicio</span>
+            <span class="hidden sm:inline">Volver al Panel de Secretaría</span>
           </a>
         </div>
       </div>
@@ -84,11 +84,11 @@
   </div>
 
   <!-- Main Content -->
-  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-8">
     
     <!-- Paso 1: Selección de Profesional -->
     <div id="paso-profesional" class="mb-8">
-      <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+      <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 md:p-6">
         <div class="flex items-center space-x-3 mb-6">
           <div class="bg-primary p-2 rounded-lg">
             <i class="fas fa-user-md text-white"></i>
@@ -104,7 +104,7 @@
 
     <!-- Paso 2: Selección de Fecha -->
     <div id="paso-fecha" class="mb-8 hidden">
-      <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+      <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 md:p-6">
         <div class="flex items-center justify-between mb-6">
           <div class="flex items-center space-x-3">
             <div class="bg-secondary p-2 rounded-lg">
@@ -151,7 +151,7 @@
 
     <!-- Paso 3: Selección de Horario -->
     <div id="paso-horario" class="mb-8 hidden">
-      <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+      <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 md:p-6">
         <div class="flex items-center justify-between mb-6">
           <div class="flex items-center space-x-3">
             <div class="bg-success p-2 rounded-lg">
@@ -498,7 +498,7 @@
   <footer class="bg-white border-t border-gray-200 mt-12">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
       <div class="text-center text-gray-600">
-        <p>&copy; 2025 Consultorio Colom-Bobbiesi. Desarrollado por <strong>Nicolas Fernandez</strong></p>
+        <p>&copy; 2025 Consultorios Colom. Desarrollado por <strong>Nicolas Fernandez</strong></p>
         <p class="text-sm mt-1">Sistema de gestión de turnos y pacientes</p>
 </div>
     </div>

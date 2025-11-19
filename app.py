@@ -12,6 +12,17 @@ from functools import wraps
 from datetime import datetime, date, timezone, timedelta
 from werkzeug.security import generate_password_hash, check_password_hash
 import pytz
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+
+# Cargar variables de entorno desde .env
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    print("⚠️ python-dotenv no está instalado. Instala con: pip install python-dotenv")
+    print("   O configura las variables de entorno manualmente.")
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "clave_insegura_dev")
@@ -22,11 +33,45 @@ app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=24)
 # Configurar zona horaria para Argentina (UTC-3)
 timezone_ar = pytz.timezone('America/Argentina/Buenos_Aires')
 
+# Configuración de email (cargar desde .env y variables de entorno)
+# Asegurar que load_dotenv se ejecute antes de leer las variables
+try:
+    from dotenv import load_dotenv
+    # Cargar explícitamente desde el archivo .env en la raíz del proyecto
+    import os as os_module
+    env_path = os_module.path.join(os_module.path.dirname(__file__), '.env')
+    load_dotenv(dotenv_path=env_path)
+    # También intentar cargar desde la ruta actual
+    load_dotenv()
+except ImportError:
+    pass
+except Exception as e:
+    print(f"⚠️ Error al cargar .env al inicio: {e}")
+
+app.config['MAIL_SERVER'] = os.environ.get('MAIL_SERVER', 'smtp.gmail.com')
+app.config['MAIL_PORT'] = int(os.environ.get('MAIL_PORT', 587))
+app.config['MAIL_USE_TLS'] = os.environ.get('MAIL_USE_TLS', 'True').lower() in ['true', '1', 'yes']
+app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME', '')
+app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD', '')
+app.config['MAIL_FROM'] = os.environ.get('MAIL_FROM', app.config['MAIL_USERNAME'])
+
+# Debug: mostrar estado de configuración de email (sin mostrar contraseña)
+print(f"📧 Configuración de Email al inicio:")
+print(f"   Servidor: {app.config['MAIL_SERVER']}:{app.config['MAIL_PORT']}")
+print(f"   Usuario: {app.config['MAIL_USERNAME'] if app.config['MAIL_USERNAME'] else 'NO CONFIGURADO'}")
+print(f"   Contraseña: {'✓ Configurada' if app.config['MAIL_PASSWORD'] else '✗ NO CONFIGURADA'}")
+print(f"   Desde: {app.config['MAIL_FROM']}")
+print(f"   os.environ MAIL_USERNAME: {os.environ.get('MAIL_USERNAME', 'NO ENCONTRADO')}")
+print(f"   os.environ MAIL_PASSWORD: {'ENCONTRADO' if os.environ.get('MAIL_PASSWORD') else 'NO ENCONTRADO'}")
+
 # Función para obtener conexión a la base de datos con timeout
 def get_db_connection():
     """Obtener conexión a la base de datos con timeout y configuración optimizada"""
     import time
     import random
+    
+    # Crear directorio data si no existe (necesario para Render)
+    os.makedirs('data', exist_ok=True)
     
     max_retries = 5
     base_delay = 0.1
@@ -95,7 +140,7 @@ def cargar_pacientes():
     conn = get_db_connection()
     c = conn.cursor()
     try:
-        c.execute("SELECT dni, nombre, apellido, fecha_nacimiento, obra_social, numero_obra_social, celular FROM pacientes")
+        c.execute("SELECT dni, nombre, apellido, fecha_nacimiento, obra_social, numero_obra_social, celular, email FROM pacientes")
         pacientes_data = c.fetchall()
         pacientes = []
         for row in pacientes_data:
@@ -106,7 +151,8 @@ def cargar_pacientes():
                 "fecha_nacimiento": row[3],
                 "obra_social": row[4],
                 "numero_obra_social": row[5],
-                "celular": row[6]
+                "celular": row[6],
+                "email": row[7] if len(row) > 7 else None
             }
             # Calcular edad
             if paciente.get("fecha_nacimiento"):
@@ -127,6 +173,12 @@ def cargar_pacientes():
                 not paciente.get("fecha_nacimiento") or
                 not paciente.get("obra_social") or
                 not paciente.get("celular")
+            )
+            
+            # Marcar si el paciente fue registrado por autogestión (tiene email pero falta info)
+            paciente["registro_rapido"] = (
+                paciente.get("email") and 
+                (paciente.get("nombre") == "Pendiente" or paciente.get("apellido") == "Pendiente")
             )
             
             pacientes.append(paciente)
@@ -256,13 +308,21 @@ def cargar_historias():
     try:
         c.execute("SELECT dni, consulta_medica, medico, fecha_consulta FROM historias_clinicas")
         historias_data = c.fetchall()
+        
+        # Obtener especialidades de médicos
+        c.execute("SELECT usuario, especialidad FROM usuarios WHERE rol = 'medico'")
+        medicos_especialidades = {row[0]: row[1] for row in c.fetchall()}
+        
         historias = []
         for row in historias_data:
+            medico = row[2]
+            especialidad = medicos_especialidades.get(medico, None) if medico else None
             historia = {
                 "dni": str(row[0] or ""),
                 "consulta_medica": row[1],
-                "medico": row[2],
-                "fecha_consulta": row[3]
+                "medico": medico,
+                "fecha_consulta": row[3],
+                "especialidad": especialidad
             }
             historias.append(historia)
         conn.close()
@@ -281,14 +341,15 @@ def cargar_usuarios_db():
     conn = get_db_connection()
     c = conn.cursor()
     try:
-        c.execute("SELECT usuario, contrasena, rol FROM usuarios")
+        c.execute("SELECT usuario, contrasena, rol, especialidad FROM usuarios")
         usuarios_data = c.fetchall()
         usuarios = []
         for row in usuarios_data:
             usuarios.append({
                 "usuario": row[0],
                 "contrasena": row[1],
-                "rol": row[2]
+                "rol": row[2],
+                "especialidad": row[3] if len(row) > 3 else None
             })
         conn.close()
         print(f"DEBUG: {len(usuarios)} usuarios cargados de BD")
@@ -351,9 +412,14 @@ def rol_permitido(varios_roles):
 
 # Rutas principales
 @app.route("/")
+def inicio_publico():
+    """Página de inicio pública para pacientes"""
+    return render_template("inicio_publico.html")
+
 @app.route("/inicio")
 @login_requerido
 def inicio():
+    """Página de inicio para usuarios autenticados"""
     rol_usuario = session.get("rol")
     if rol_usuario == "medico":
         return render_template("index.html")
@@ -427,6 +493,125 @@ def logout():
 def api_usuarios():
     usuarios = cargar_usuarios_db()
     return jsonify(usuarios)
+
+@app.route("/api/usuarios", methods=["POST"])
+@login_requerido
+@rol_permitido(["administrador"])
+def crear_usuario():
+    """Crear un nuevo usuario"""
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        return jsonify({"error": "Cuerpo inválido; enviar JSON"}), 400
+    
+    usuario = data.get("usuario", "").strip()
+    contrasena = data.get("contrasena", "").strip()
+    rol = data.get("rol", "").strip().lower()
+    especialidad = data.get("especialidad", "").strip() if rol == "medico" else None
+    
+    if not usuario or not contrasena or not rol:
+        return jsonify({"error": "Usuario, contraseña y rol son obligatorios"}), 400
+    
+    if rol not in ["medico", "secretaria", "administrador"]:
+        return jsonify({"error": "Rol inválido. Debe ser: medico, secretaria o administrador"}), 400
+    
+    conn = None
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        
+        # Verificar si el usuario ya existe
+        cur.execute("SELECT 1 FROM usuarios WHERE usuario = ?", (usuario,))
+        if cur.fetchone():
+            return jsonify({"error": "El usuario ya existe"}), 400
+        
+        # Insertar nuevo usuario
+        if especialidad:
+            cur.execute("""
+                INSERT INTO usuarios (usuario, contrasena, rol, especialidad)
+                VALUES (?, ?, ?, ?)
+            """, (usuario, generate_password_hash(contrasena), rol, especialidad))
+        else:
+            cur.execute("""
+                INSERT INTO usuarios (usuario, contrasena, rol)
+                VALUES (?, ?, ?)
+            """, (usuario, generate_password_hash(contrasena), rol))
+        
+        conn.commit()
+        return jsonify({"success": True, "mensaje": "Usuario creado correctamente"}), 201
+    except Exception as e:
+        if conn:
+            conn.rollback()
+        return jsonify({"error": f"Error al crear usuario: {str(e)}"}), 500
+    finally:
+        if conn:
+            conn.close()
+
+@app.route("/api/usuarios/<usuario>", methods=["PUT"])
+@login_requerido
+@rol_permitido(["administrador"])
+def actualizar_usuario(usuario):
+    """Actualizar un usuario existente (incluyendo especialidad)"""
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        return jsonify({"error": "Cuerpo inválido; enviar JSON"}), 400
+    
+    conn = None
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        
+        # Verificar que el usuario existe
+        cur.execute("SELECT rol FROM usuarios WHERE usuario = ?", (usuario,))
+        usuario_existente = cur.fetchone()
+        if not usuario_existente:
+            return jsonify({"error": "Usuario no encontrado"}), 404
+        
+        rol_actual = usuario_existente[0]
+        
+        # Actualizar campos
+        actualizaciones = []
+        valores = []
+        
+        if "contrasena" in data and data["contrasena"]:
+            actualizaciones.append("contrasena = ?")
+            valores.append(generate_password_hash(data["contrasena"].strip()))
+        
+        if "rol" in data:
+            nuevo_rol = data["rol"].strip().lower()
+            if nuevo_rol not in ["medico", "secretaria", "administrador"]:
+                return jsonify({"error": "Rol inválido"}), 400
+            actualizaciones.append("rol = ?")
+            valores.append(nuevo_rol)
+            rol_actual = nuevo_rol
+        
+        if "especialidad" in data:
+            especialidad = data["especialidad"].strip() if data["especialidad"] else None
+            if rol_actual == "medico":
+                actualizaciones.append("especialidad = ?")
+                valores.append(especialidad)
+            elif especialidad:
+                # Si no es médico, eliminar especialidad
+                actualizaciones.append("especialidad = NULL")
+        
+        if not actualizaciones:
+            return jsonify({"error": "No hay campos para actualizar"}), 400
+        
+        valores.append(usuario)
+        query = f"UPDATE usuarios SET {', '.join(actualizaciones)} WHERE usuario = ?"
+        cur.execute(query, valores)
+        
+        if cur.rowcount == 0:
+            return jsonify({"error": "No se pudo actualizar el usuario"}), 400
+        
+        conn.commit()
+        return jsonify({"success": True, "mensaje": "Usuario actualizado correctamente"})
+    except Exception as e:
+        if conn:
+            conn.rollback()
+        return jsonify({"error": f"Error al actualizar usuario: {str(e)}"}), 500
+    finally:
+        if conn:
+            conn.close()
 
 @app.route("/api/pacientes", methods=["GET", "POST"])
 @login_requerido
@@ -2000,6 +2185,11 @@ def obtener_historia_por_dni(dni):
         """, (dni,))
         
         historias = c.fetchall()
+        
+        # Obtener especialidades de médicos
+        c.execute("SELECT usuario, especialidad FROM usuarios WHERE rol = 'medico'")
+        medicos_especialidades = {row[0]: row[1] for row in c.fetchall()}
+        
         conn.close()
         
         if not historias:
@@ -2008,12 +2198,15 @@ def obtener_historia_por_dni(dni):
         # Convertir a formato JSON
         historias_json = []
         for historia in historias:
+            medico = historia[2]
+            especialidad = medicos_especialidades.get(medico, None) if medico else None
             historias_json.append({
                 "dni": historia[0],
                 "consulta_medica": historia[1],
-                "medico": historia[2],
+                "medico": medico,
                 "fecha_consulta": historia[3],
-                "fecha_creacion": historia[4]
+                "fecha_creacion": historia[4],
+                "especialidad": especialidad
             })
         
         return jsonify(historias_json)
@@ -2080,10 +2273,23 @@ def buscar_historias():
         fin = inicio + por_pagina
         historias_pagina = historias[inicio:fin]
         
-        # Agrupar por paciente
+        # Obtener especialidades de médicos desde la base de datos
+        conn_medicos = get_db_connection()
+        c_medicos = conn_medicos.cursor()
+        c_medicos.execute("SELECT usuario, especialidad FROM usuarios WHERE rol = 'medico'")
+        medicos_especialidades = {row[0]: row[1] for row in c_medicos.fetchall()}
+        conn_medicos.close()
+        
+        # Agrupar por paciente y por especialidad
         pacientes_dict = {}
+        especialidades_dict = {}
+        
         for historia in historias_pagina:
             dni = historia.get('dni')
+            medico = historia.get('medico', '')
+            especialidad = medicos_especialidades.get(medico, 'Sin especialidad') or 'Sin especialidad'
+            
+            # Agrupar por paciente
             if dni not in pacientes_dict:
                 pacientes_dict[dni] = {
                     'dni': dni,
@@ -2092,6 +2298,22 @@ def buscar_historias():
                     'ultima_historia': None
                 }
             pacientes_dict[dni]['historias'].append(historia)
+            
+            # Agrupar por especialidad
+            if especialidad not in especialidades_dict:
+                especialidades_dict[especialidad] = {
+                    'especialidad': especialidad,
+                    'historias': [],
+                    'medicos': set(),
+                    'total_consultas': 0
+                }
+            especialidades_dict[especialidad]['historias'].append(historia)
+            especialidades_dict[especialidad]['medicos'].add(medico)
+        
+        # Convertir sets a listas para JSON
+        for esp_data in especialidades_dict.values():
+            esp_data['medicos'] = list(esp_data['medicos'])
+            esp_data['total_consultas'] = len(esp_data['historias'])
         
         # Calcular última consulta y última historia para cada paciente
         pacientes = []
@@ -2141,6 +2363,7 @@ def buscar_historias():
         
         return jsonify({
             'pacientes': pacientes,
+            'especialidades': list(especialidades_dict.values()),
             'total': total,
             'pagina': pagina,
             'por_pagina': por_pagina,
@@ -2151,5 +2374,731 @@ def buscar_historias():
         print(f"Error en buscar_historias: {e}")
         return jsonify({'error': 'Error al buscar historias clínicas'}), 500
 
+# ====================== SISTEMA DE RESERVA DE TURNOS PÚBLICO ======================
+
+def enviar_email_confirmacion(destinatario, nombre_paciente, medico, fecha, hora, especialidad):
+    """Enviar email de confirmación de turno"""
+    try:
+        # Intentar cargar desde .env si no están en app.config
+        if not app.config.get('MAIL_USERNAME') or not app.config.get('MAIL_PASSWORD'):
+            # Método 1: Intentar con python-dotenv
+            try:
+                from dotenv import load_dotenv
+                import os as os_module
+                env_path = os_module.path.join(os_module.path.dirname(__file__), '.env')
+                load_dotenv(dotenv_path=env_path)
+                load_dotenv()  # También desde la ruta actual
+                
+                # Recargar en app.config si se encontraron en .env
+                if os.environ.get('MAIL_USERNAME'):
+                    app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME', '')
+                if os.environ.get('MAIL_PASSWORD'):
+                    app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD', '')
+                if os.environ.get('MAIL_FROM'):
+                    app.config['MAIL_FROM'] = os.environ.get('MAIL_FROM', '')
+                if os.environ.get('MAIL_SERVER'):
+                    app.config['MAIL_SERVER'] = os.environ.get('MAIL_SERVER', 'smtp.gmail.com')
+                if os.environ.get('MAIL_PORT'):
+                    app.config['MAIL_PORT'] = int(os.environ.get('MAIL_PORT', 587))
+                if os.environ.get('MAIL_USE_TLS'):
+                    app.config['MAIL_USE_TLS'] = os.environ.get('MAIL_USE_TLS', 'True').lower() in ['true', '1', 'yes']
+                
+                print(f"🔄 Variables recargadas desde .env (método dotenv)")
+            except ImportError:
+                # Método 2: Leer .env directamente como fallback
+                try:
+                    import os as os_module
+                    env_path = os_module.path.join(os_module.path.dirname(__file__), '.env')
+                    if os_module.path.exists(env_path):
+                        with open(env_path, 'r', encoding='utf-8') as f:
+                            for line in f:
+                                line = line.strip()
+                                if line and not line.startswith('#') and '=' in line:
+                                    key, value = line.split('=', 1)
+                                    key = key.strip()
+                                    value = value.strip().strip('"').strip("'")
+                                    if key == 'MAIL_USERNAME':
+                                        app.config['MAIL_USERNAME'] = value
+                                    elif key == 'MAIL_PASSWORD':
+                                        app.config['MAIL_PASSWORD'] = value
+                                    elif key == 'MAIL_FROM':
+                                        app.config['MAIL_FROM'] = value
+                                    elif key == 'MAIL_SERVER':
+                                        app.config['MAIL_SERVER'] = value
+                                    elif key == 'MAIL_PORT':
+                                        app.config['MAIL_PORT'] = int(value) if value.isdigit() else 587
+                                    elif key == 'MAIL_USE_TLS':
+                                        app.config['MAIL_USE_TLS'] = value.lower() in ['true', '1', 'yes']
+                        print(f"🔄 Variables recargadas desde .env (método directo)")
+                except Exception as e2:
+                    print(f"⚠️ Error al leer .env directamente: {e2}")
+            except Exception as e:
+                print(f"⚠️ Error al cargar .env: {e}")
+                import traceback
+                traceback.print_exc()
+        
+        # Obtener configuración desde app.config (debería tener las variables)
+        mail_username = app.config.get('MAIL_USERNAME', '')
+        mail_password = app.config.get('MAIL_PASSWORD', '')
+        mail_from = app.config.get('MAIL_FROM', '') or mail_username
+        mail_server = app.config.get('MAIL_SERVER', 'smtp.gmail.com')
+        mail_port = app.config.get('MAIL_PORT', 587)
+        mail_use_tls = app.config.get('MAIL_USE_TLS', True)
+        
+        print(f"🔍 DEBUG Email - Username: {'✓' if mail_username else '✗'}, Password: {'✓' if mail_password else '✗'}")
+        print(f"🔍 DEBUG Email - Server: {mail_server}, Port: {mail_port}, TLS: {mail_use_tls}")
+        print(f"🔍 DEBUG Email - app.config['MAIL_USERNAME']: {app.config.get('MAIL_USERNAME', 'NO EXISTE')}")
+        print(f"🔍 DEBUG Email - app.config['MAIL_PASSWORD']: {'EXISTE' if app.config.get('MAIL_PASSWORD') else 'NO EXISTE'}")
+        
+        if not mail_username or not mail_password:
+            print("⚠️ Configuración de email no disponible. Email no enviado.")
+            print(f"   MAIL_USERNAME: {'✓ Configurado' if mail_username else '✗ Faltante'}")
+            print(f"   MAIL_PASSWORD: {'✓ Configurado' if mail_password else '✗ Faltante'}")
+            print(f"   Verifica que el archivo .env exista y tenga las variables correctas")
+            print(f"   Ruta actual: {os.getcwd()}")
+            print(f"   Archivo .env existe: {os.path.exists('.env')}")
+            return False
+        
+        # Crear mensaje
+        msg = MIMEMultipart('alternative')
+        msg['Subject'] = f'Confirmación de Turno - {medico}'
+        msg['From'] = mail_from
+        msg['To'] = destinatario
+        
+        # Formatear fecha
+        try:
+            fecha_obj = datetime.strptime(fecha, "%Y-%m-%d").date()
+            fecha_formateada = fecha_obj.strftime("%d/%m/%Y")
+        except:
+            fecha_formateada = fecha
+        
+        # Cuerpo del email
+        texto = f"""
+Estimado/a {nombre_paciente},
+
+Su turno ha sido confirmado exitosamente.
+
+Detalles del turno:
+- Médico: Dr./Dra. {medico}
+- Especialidad: {especialidad}
+- Fecha: {fecha_formateada}
+- Hora: {hora}
+- Dirección: Altube 2085, Jose C. Paz
+
+Por favor, llegue 10 minutos antes de su turno.
+
+Si necesita cancelar o modificar su turno, comuníquese con nosotros.
+
+Saludos cordiales,
+Consultorios Colom
+Altube 2085, Jose C. Paz
+        """
+        
+        html = f"""
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; }}
+        .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
+        .header {{ background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; text-align: center; border-radius: 10px 10px 0 0; }}
+        .content {{ background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }}
+        .info-box {{ background: white; padding: 20px; margin: 20px 0; border-left: 4px solid #667eea; border-radius: 5px; }}
+        .info-item {{ margin: 10px 0; }}
+        .info-label {{ font-weight: bold; color: #667eea; }}
+        .footer {{ text-align: center; margin-top: 20px; color: #666; font-size: 12px; }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>✓ Turno Confirmado</h1>
+        </div>
+        <div class="content">
+            <p>Estimado/a <strong>{nombre_paciente}</strong>,</p>
+            <p>Su turno ha sido confirmado exitosamente.</p>
+            
+            <div class="info-box">
+                <div class="info-item">
+                    <span class="info-label">Médico:</span> Dr./Dra. {medico}
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Especialidad:</span> {especialidad}
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Fecha:</span> {fecha_formateada}
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Hora:</span> {hora}
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Dirección:</span> Altube 2085, Jose C. Paz
+                </div>
+            </div>
+            
+            <p><strong>Importante:</strong> Por favor, llegue 10 minutos antes de su turno.</p>
+            
+            <p>Si necesita cancelar o modificar su turno, comuníquese con nosotros.</p>
+            
+            <p>Saludos cordiales,<br><strong>Consultorios Colom</strong><br>Altube 2085, Jose C. Paz</p>
+        </div>
+        <div class="footer">
+            <p>Este es un email automático, por favor no responda.</p>
+        </div>
+    </div>
+</body>
+</html>
+        """
+        
+        # Adjuntar partes
+        part1 = MIMEText(texto, 'plain', 'utf-8')
+        part2 = MIMEText(html, 'html', 'utf-8')
+        msg.attach(part1)
+        msg.attach(part2)
+        
+        # Enviar email
+        print(f"📧 Intentando enviar email a {destinatario}...")
+        print(f"   Servidor: {mail_server}:{mail_port}")
+        print(f"   Usuario: {mail_username}")
+        print(f"   TLS: {mail_use_tls}")
+        
+        server = None
+        max_intentos = 2
+        
+        for intento in range(1, max_intentos + 1):
+            try:
+                if intento > 1:
+                    print(f"   Reintento {intento}/{max_intentos}...")
+                    import time
+                    time.sleep(2)  # Esperar 2 segundos antes de reintentar
+                
+                # Crear conexión con timeout más largo
+                server = smtplib.SMTP(mail_server, mail_port, timeout=30)
+                server.set_debuglevel(0)  # Desactivado para producción
+                
+                # Configurar timeout para operaciones
+                server.timeout = 30
+                
+                if mail_use_tls:
+                    print("   Iniciando TLS...")
+                    server.starttls()
+                    # Reconfigurar timeout después de TLS
+                    server.timeout = 30
+                
+                print(f"   Autenticando con usuario: {mail_username}")
+                server.login(mail_username, mail_password)
+                print("   ✓ Autenticación exitosa")
+                
+                print(f"   Enviando mensaje...")
+                # Enviar mensaje con timeout explícito
+                try:
+                    server.send_message(msg)
+                    print("   ✓ Mensaje enviado al servidor")
+                except Exception as send_error:
+                    print(f"   ⚠️ Error al enviar mensaje: {send_error}")
+                    raise
+                
+                # Cerrar conexión de forma segura
+                try:
+                    server.quit()
+                except:
+                    server.close()
+                
+                print(f"✅ Email de confirmación enviado exitosamente a {destinatario}")
+                return True
+                
+            except smtplib.SMTPAuthenticationError as e:
+                print(f"❌ Error de autenticación SMTP: {e}")
+                print("   Verifica que MAIL_USERNAME y MAIL_PASSWORD sean correctos")
+                print("   Si usas Gmail, asegúrate de usar una 'Contraseña de Aplicación'")
+                print(f"   Usuario usado: {mail_username}")
+                if server:
+                    try:
+                        server.quit()
+                    except:
+                        server.close()
+                return False
+                
+            except (smtplib.SMTPServerDisconnected, smtplib.SMTPConnectError, ConnectionError) as e:
+                print(f"❌ Error de conexión SMTP (intento {intento}/{max_intentos}): {e}")
+                print(f"   Tipo de error: {type(e).__name__}")
+                if server:
+                    try:
+                        server.quit()
+                    except:
+                        try:
+                            server.close()
+                        except:
+                            pass
+                if intento < max_intentos:
+                    print("   Reintentando...")
+                    continue
+                else:
+                    print("   Se agotaron los intentos")
+                    return False
+                    
+            except smtplib.SMTPException as e:
+                print(f"❌ Error SMTP: {e}")
+                print(f"   Tipo de error: {type(e).__name__}")
+                if server:
+                    try:
+                        server.quit()
+                    except:
+                        server.close()
+                if intento < max_intentos and "timeout" in str(e).lower():
+                    print("   Reintentando por timeout...")
+                    continue
+                return False
+                
+            except Exception as e:
+                print(f"❌ Error inesperado al enviar email: {e}")
+                print(f"   Tipo de error: {type(e).__name__}")
+                if server:
+                    try:
+                        server.quit()
+                    except:
+                        try:
+                            server.close()
+                        except:
+                            pass
+                if intento < max_intentos:
+                    print("   Reintentando...")
+                    continue
+                else:
+                    import traceback
+                    traceback.print_exc()
+                    return False
+        
+        return False
+    except Exception as e:
+        print(f"❌ Error general en enviar_email_confirmacion: {e}")
+        import traceback
+        traceback.print_exc()
+        return False
+
+@app.route("/reservar-turno")
+def reservar_turno():
+    """Vista pública para reservar turnos"""
+    return render_template("reserva_turno.html")
+
+@app.route("/admin/backup-db")
+@login_requerido
+@rol_permitido(["administrador"])
+def backup_database():
+    """Descargar backup de la base de datos (solo administradores)"""
+    import shutil
+    from datetime import datetime
+    import os
+    
+    try:
+        # Verificar que la BD existe
+        if not os.path.exists("data/consultorio.db"):
+            return "Base de datos no encontrada", 404
+        
+        # Crear nombre de backup con timestamp
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        backup_filename = f"consultorio_backup_{timestamp}.db"
+        backup_path = f"data/{backup_filename}"
+        
+        # Crear copia
+        shutil.copy("data/consultorio.db", backup_path)
+        
+        # Verificar que se copió correctamente
+        if not os.path.exists(backup_path):
+            return "Error al crear backup", 500
+        
+        # Enviar como descarga
+        return send_file(
+            backup_path,
+            as_attachment=True,
+            download_name=backup_filename,
+            mimetype='application/x-sqlite3'
+        )
+    except Exception as e:
+        print(f"Error en backup: {e}")
+        import traceback
+        traceback.print_exc()
+        return f"Error al crear backup: {str(e)}", 500
+
+# ⚠️ ENDPOINT TEMPORAL: Eliminar después de crear el primer administrador
+@app.route("/setup-admin", methods=["GET", "POST"])
+def setup_admin():
+    """Endpoint temporal para crear primer administrador en producción"""
+    if request.method == "POST":
+        usuario = request.form.get("usuario")
+        contrasena = request.form.get("contrasena")
+        nombre = request.form.get("nombre", usuario)
+        
+        if not usuario or not contrasena:
+            return "Usuario y contraseña son requeridos", 400
+        
+        try:
+            conn = get_db_connection()
+            c = conn.cursor()
+            
+            # Verificar si ya existe un administrador
+            c.execute("SELECT COUNT(*) FROM usuarios WHERE rol = 'administrador'")
+            if c.fetchone()[0] > 0:
+                conn.close()
+                return """
+                <html>
+                <body style="font-family: Arial; padding: 20px;">
+                    <h2>⚠️ Ya existe un administrador</h2>
+                    <p>Ya hay un administrador en el sistema. Por seguridad, elimina este endpoint.</p>
+                    <p><a href="/login">Ir al login</a></p>
+                </body>
+                </html>
+                """
+            
+            # Verificar si el usuario ya existe
+            c.execute("SELECT COUNT(*) FROM usuarios WHERE usuario = ?", (usuario,))
+            if c.fetchone()[0] > 0:
+                conn.close()
+                return "El usuario ya existe. Elige otro nombre.", 400
+            
+            # Crear administrador
+            hash_contraseña = generate_password_hash(contrasena)
+            c.execute("""
+                INSERT INTO usuarios (usuario, contrasena, rol, nombre_completo, activo)
+                VALUES (?, ?, 'administrador', ?, 1)
+            """, (usuario, hash_contraseña, nombre))
+            conn.commit()
+            conn.close()
+            
+            return """
+            <html>
+            <body style="font-family: Arial; padding: 20px; background: #f0f0f0;">
+                <div style="max-width: 600px; margin: 50px auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+                    <h2 style="color: #28a745;">✅ Administrador creado exitosamente</h2>
+                    <p><strong>Usuario:</strong> {}</p>
+                    <p><strong>Rol:</strong> Administrador</p>
+                    <hr>
+                    <p style="color: #dc3545; font-weight: bold;">⚠️ IMPORTANTE:</p>
+                    <p>Por seguridad, elimina o protege el endpoint <code>/setup-admin</code> en <code>app.py</code></p>
+                    <p><a href="/login" style="display: inline-block; margin-top: 20px; padding: 10px 20px; background: #667eea; color: white; text-decoration: none; border-radius: 5px;">Ir al Login</a></p>
+                </div>
+            </body>
+            </html>
+            """.format(usuario)
+        
+        except Exception as e:
+            return f"Error al crear administrador: {str(e)}", 500
+    
+    return """
+    <html>
+    <head>
+        <title>Setup Administrador</title>
+        <style>
+            body { font-family: Arial, sans-serif; padding: 20px; background: #f0f0f0; }
+            .container { max-width: 500px; margin: 50px auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+            h2 { color: #333; }
+            .form-group { margin-bottom: 20px; }
+            label { display: block; margin-bottom: 5px; font-weight: bold; }
+            input { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; box-sizing: border-box; }
+            button { width: 100%; padding: 12px; background: #667eea; color: white; border: none; border-radius: 5px; font-size: 16px; cursor: pointer; }
+            button:hover { background: #5568d3; }
+            .warning { background: #fff3cd; border: 1px solid #ffc107; padding: 15px; border-radius: 5px; margin-bottom: 20px; }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h2>🔧 Crear Primer Administrador</h2>
+            <div class="warning">
+                <strong>⚠️ Advertencia:</strong> Este endpoint es temporal. Elimínalo después de crear el administrador por seguridad.
+            </div>
+            <form method="POST">
+                <div class="form-group">
+                    <label for="usuario">Usuario:</label>
+                    <input type="text" id="usuario" name="usuario" required>
+                </div>
+                <div class="form-group">
+                    <label for="contrasena">Contraseña:</label>
+                    <input type="password" id="contrasena" name="contrasena" required>
+                </div>
+                <div class="form-group">
+                    <label for="nombre">Nombre Completo (opcional):</label>
+                    <input type="text" id="nombre" name="nombre">
+                </div>
+                <button type="submit">Crear Administrador</button>
+            </form>
+        </div>
+    </body>
+    </html>
+    """
+
+@app.route("/api/public/especialidades", methods=["GET"])
+def obtener_especialidades_publico():
+    """Obtener lista de especialidades disponibles (público)"""
+    try:
+        conn = get_db_connection()
+        c = conn.cursor()
+        c.execute("""
+            SELECT DISTINCT especialidad 
+            FROM usuarios 
+            WHERE rol = 'medico' 
+            AND especialidad IS NOT NULL 
+            AND especialidad != ''
+            AND activo = 1
+            ORDER BY especialidad
+        """)
+        especialidades = [row[0] for row in c.fetchall()]
+        conn.close()
+        return jsonify(especialidades)
+    except Exception as e:
+        print(f"Error al obtener especialidades: {e}")
+        return jsonify({"error": "Error al obtener especialidades"}), 500
+
+@app.route("/api/public/medicos", methods=["GET"])
+def obtener_medicos_por_especialidad():
+    """Obtener médicos por especialidad (público)"""
+    especialidad = request.args.get('especialidad', '').strip()
+    if not especialidad:
+        return jsonify({"error": "Especialidad requerida"}), 400
+    
+    try:
+        conn = get_db_connection()
+        c = conn.cursor()
+        c.execute("""
+            SELECT usuario, nombre_completo, especialidad
+            FROM usuarios 
+            WHERE rol = 'medico' 
+            AND especialidad = ?
+            AND activo = 1
+            ORDER BY nombre_completo, usuario
+        """, (especialidad,))
+        medicos = []
+        for row in c.fetchall():
+            medicos.append({
+                "usuario": row[0],
+                "nombre": row[1] or row[0],
+                "especialidad": row[2]
+            })
+        conn.close()
+        return jsonify(medicos)
+    except Exception as e:
+        print(f"Error al obtener médicos: {e}")
+        return jsonify({"error": "Error al obtener médicos"}), 500
+
+@app.route("/api/public/turnos-disponibles", methods=["GET"])
+def obtener_turnos_disponibles():
+    """Obtener turnos disponibles para un médico y fecha (público)"""
+    medico = request.args.get('medico', '').strip()
+    fecha = request.args.get('fecha', '').strip()
+    
+    if not medico or not fecha:
+        return jsonify({"error": "Médico y fecha requeridos"}), 400
+    
+    try:
+        # Validar formato de fecha
+        datetime.strptime(fecha, "%Y-%m-%d")
+    except ValueError:
+        return jsonify({"error": "Formato de fecha inválido (usar YYYY-MM-DD)"}), 400
+    
+    try:
+        conn = get_db_connection()
+        c = conn.cursor()
+        
+        # Obtener día de la semana
+        fecha_dt = datetime.strptime(fecha, "%Y-%m-%d").date()
+        dia_semana = fecha_dt.strftime("%A").upper()
+        dia_es = {
+            "MONDAY": "LUNES", "TUESDAY": "MARTES", "WEDNESDAY": "MIERCOLES",
+            "THURSDAY": "JUEVES", "FRIDAY": "VIERNES", "SATURDAY": "SABADO", "SUNDAY": "DOMINGO"
+        }
+        dia_semana_es = dia_es.get(dia_semana, "")
+        
+        # Obtener horarios disponibles del médico para ese día
+        c.execute("""
+            SELECT horario 
+            FROM agenda 
+            WHERE medico = ? 
+            AND dia_semana = ?
+            AND activo = 1
+            ORDER BY horario
+        """, (medico, dia_semana_es))
+        horarios_disponibles = [row[0] for row in c.fetchall()]
+        
+        # Obtener horarios ocupados
+        c.execute("""
+            SELECT hora_turno 
+            FROM turnos 
+            WHERE medico = ? 
+            AND fecha_turno = ?
+            AND estado != 'ausente'
+        """, (medico, fecha))
+        horarios_ocupados = [row[0] for row in c.fetchall()]
+        
+        # Filtrar horarios disponibles
+        turnos_disponibles = [h for h in horarios_disponibles if h not in horarios_ocupados]
+        
+        conn.close()
+        return jsonify(turnos_disponibles)
+    except Exception as e:
+        print(f"Error al obtener turnos disponibles: {e}")
+        return jsonify({"error": "Error al obtener turnos disponibles"}), 500
+
+@app.route("/api/public/reservar-turno", methods=["POST"])
+def reservar_turno_publico():
+    """Reservar turno desde el sistema público"""
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        return jsonify({"error": "Cuerpo inválido; enviar JSON"}), 400
+    
+    # Validar campos requeridos
+    dni = str(data.get("dni", "")).strip()
+    email = str(data.get("email", "")).strip()
+    medico = str(data.get("medico", "")).strip()
+    fecha = str(data.get("fecha", "")).strip()
+    hora = str(data.get("hora", "")).strip()
+    
+    if not all([dni, email, medico, fecha, hora]):
+        return jsonify({"error": "Todos los campos son obligatorios"}), 400
+    
+    # Validar DNI
+    if not dni.isdigit() or len(dni) not in (7, 8):
+        return jsonify({"error": "DNI inválido (solo números, 7 u 8 dígitos)"}), 400
+    
+    # Validar email
+    if '@' not in email or '.' not in email.split('@')[-1]:
+        return jsonify({"error": "Email inválido"}), 400
+    
+    # Validar fecha
+    try:
+        fecha_dt = datetime.strptime(fecha, "%Y-%m-%d").date()
+        if fecha_dt < date.today():
+            return jsonify({"error": "No se pueden reservar turnos en fechas pasadas"}), 400
+    except ValueError:
+        return jsonify({"error": "Formato de fecha inválido (usar YYYY-MM-DD)"}), 400
+    
+    conn = None
+    try:
+        conn = get_db_connection()
+        c = conn.cursor()
+        
+        # Verificar que el médico existe y está activo
+        c.execute("SELECT especialidad, nombre_completo FROM usuarios WHERE usuario = ? AND rol = 'medico' AND activo = 1", (medico,))
+        medico_info = c.fetchone()
+        if not medico_info:
+            return jsonify({"error": "Médico no encontrado o no disponible"}), 404
+        
+        especialidad = medico_info[0] or "Sin especialidad"
+        nombre_medico = medico_info[1] or medico
+        
+        # Verificar que el turno está disponible
+        c.execute("""
+            SELECT id FROM turnos 
+            WHERE medico = ? AND fecha_turno = ? AND hora_turno = ?
+        """, (medico, fecha, hora))
+        if c.fetchone():
+            return jsonify({"error": "El turno ya está ocupado"}), 400
+        
+        # Verificar que el horario está en la agenda del médico
+        fecha_dt = datetime.strptime(fecha, "%Y-%m-%d").date()
+        dia_semana = fecha_dt.strftime("%A").upper()
+        dia_es = {
+            "MONDAY": "LUNES", "TUESDAY": "MARTES", "WEDNESDAY": "MIERCOLES",
+            "THURSDAY": "JUEVES", "FRIDAY": "VIERNES", "SATURDAY": "SABADO", "SUNDAY": "DOMINGO"
+        }
+        dia_semana_es = dia_es.get(dia_semana, "")
+        
+        c.execute("""
+            SELECT horario FROM agenda 
+            WHERE medico = ? AND dia_semana = ? AND horario = ? AND activo = 1
+        """, (medico, dia_semana_es, hora))
+        if not c.fetchone():
+            return jsonify({"error": "El horario no está disponible para este médico"}), 400
+        
+        # Obtener datos opcionales del formulario
+        nombre = str(data.get("nombre", "")).strip()
+        apellido = str(data.get("apellido", "")).strip()
+        celular = str(data.get("celular", "")).strip()
+        fecha_nacimiento = str(data.get("fecha_nacimiento", "")).strip()
+        
+        # Crear o actualizar paciente
+        c.execute("SELECT nombre, apellido FROM pacientes WHERE dni = ?", (dni,))
+        paciente_existente = c.fetchone()
+        
+        if paciente_existente:
+            # Actualizar email si no existe
+            c.execute("UPDATE pacientes SET email = ? WHERE dni = ?", (email, dni))
+            # Si se proporcionaron datos opcionales y el paciente tiene datos pendientes, actualizarlos
+            if (nombre or apellido) and (paciente_existente[0] == "Pendiente" or paciente_existente[1] == "Pendiente"):
+                nombre_final = nombre if nombre else paciente_existente[0]
+                apellido_final = apellido if apellido else paciente_existente[1]
+                # Actualizar celular y fecha_nacimiento solo si se proporcionaron
+                if celular or fecha_nacimiento:
+                    c.execute("SELECT celular, fecha_nacimiento FROM pacientes WHERE dni = ?", (dni,))
+                    datos_actuales = c.fetchone()
+                    celular_final = celular if celular else (datos_actuales[0] if datos_actuales and datos_actuales[0] else "")
+                    fecha_nac_final = fecha_nacimiento if fecha_nacimiento else (datos_actuales[1] if datos_actuales and datos_actuales[1] else "")
+                    c.execute("""
+                        UPDATE pacientes 
+                        SET nombre = ?, apellido = ?, celular = ?, fecha_nacimiento = ?
+                        WHERE dni = ?
+                    """, (nombre_final, apellido_final, celular_final, fecha_nac_final, dni))
+                else:
+                    c.execute("UPDATE pacientes SET nombre = ?, apellido = ? WHERE dni = ?", 
+                            (nombre_final, apellido_final, dni))
+                nombre_paciente = f"{nombre_final} {apellido_final}"
+            else:
+                nombre_paciente = f"{paciente_existente[0]} {paciente_existente[1]}"
+        else:
+            # Crear paciente (usar datos opcionales si están disponibles)
+            nombre_final = nombre if nombre else "Pendiente"
+            apellido_final = apellido if apellido else "Pendiente"
+            c.execute("""
+                INSERT INTO pacientes (dni, nombre, apellido, email, fecha_nacimiento, obra_social, numero_obra_social, celular)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """, (dni, nombre_final, apellido_final, email, fecha_nacimiento if fecha_nacimiento else "", "", "", celular if celular else ""))
+            nombre_paciente = f"{nombre_final} {apellido_final}" if nombre_final != "Pendiente" or apellido_final != "Pendiente" else "Paciente"
+        
+        # Crear turno
+        c.execute("""
+            INSERT INTO turnos (medico, hora_turno, fecha_turno, dni_paciente, estado, tipo_consulta, costo, observaciones)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """, (medico, hora, fecha, dni, "sin atender", "Consulta", 0, "Reservado por autogestión"))
+        
+        turno_id = c.lastrowid
+        conn.commit()
+        
+        # Enviar email de confirmación
+        email_enviado = False
+        try:
+            email_enviado = enviar_email_confirmacion(email, nombre_paciente, nombre_medico, fecha, hora, especialidad)
+            if email_enviado:
+                print(f"✅ Email de confirmación enviado a {email}")
+            else:
+                print(f"⚠️ No se pudo enviar el email a {email}, pero el turno fue reservado")
+        except Exception as e:
+            print(f"❌ Error al enviar email (turno reservado igual): {e}")
+            import traceback
+            traceback.print_exc()
+        
+        mensaje = "Turno reservado correctamente."
+        if email_enviado:
+            mensaje += " Se ha enviado un email de confirmación."
+        else:
+            mensaje += " (No se pudo enviar el email de confirmación, pero el turno está reservado)"
+        
+        return jsonify({
+            "success": True,
+            "mensaje": mensaje,
+            "turno_id": turno_id,
+            "email_enviado": email_enviado
+        }), 201
+        
+    except Exception as e:
+        if conn:
+            conn.rollback()
+        print(f"Error al reservar turno: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": f"Error al reservar turno: {str(e)}"}), 500
+    finally:
+        if conn:
+            conn.close()
+
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=False)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port, debug=False)

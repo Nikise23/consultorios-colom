@@ -25,10 +25,15 @@ def cargar_usuarios():
     conn.close()
     return usuarios
 
-def agregar_usuario(usuario, contrasena, rol):
+def agregar_usuario(usuario, contrasena, rol, especialidad=None):
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
-    c.execute("INSERT INTO usuarios (usuario, contrasena, rol) VALUES (?, ?, ?)", (usuario, generate_password_hash(contrasena), rol))
+    if especialidad and rol == "medico":
+        c.execute("INSERT INTO usuarios (usuario, contrasena, rol, especialidad) VALUES (?, ?, ?, ?)", 
+                  (usuario, generate_password_hash(contrasena), rol, especialidad))
+    else:
+        c.execute("INSERT INTO usuarios (usuario, contrasena, rol) VALUES (?, ?, ?)", 
+                  (usuario, generate_password_hash(contrasena), rol))
     conn.commit()
     conn.close()
 
@@ -82,12 +87,31 @@ def crear_usuario():
             break
         print("❌ Rol inválido. Debe ser 'medico', 'secretaria' o 'administrador'.")
 
+    # especialidad (solo para médicos)
+    especialidad = None
+    if rol == "medico":
+        print("\nEspecialidades comunes:")
+        print("  - Oftalmología")
+        print("  - Traumatología")
+        print("  - Pediatría")
+        print("  - Clínica Médica")
+        print("  - Cardiología")
+        print("  - Dermatología")
+        print("  - Otras...")
+        especialidad = input("Especialidad (opcional, presione Enter para omitir): ").strip()
+        if not especialidad:
+            especialidad = None
+
     usuarios = cargar_usuarios()
     if any(u["usuario"] == usuario for u in usuarios):
         print("❌ Ese usuario ya existe.")
         return
-    agregar_usuario(usuario, contrasena, rol)
-    print(f"✅ Usuario '{usuario}' creado con rol '{rol}'.")
+    agregar_usuario(usuario, contrasena, rol, especialidad)
+    mensaje = f"✅ Usuario '{usuario}' creado con rol '{rol}'"
+    if especialidad:
+        mensaje += f" y especialidad '{especialidad}'"
+    mensaje += "."
+    print(mensaje)
 
 def eliminar_usuario():
     print("\n--- Eliminar usuario ---")

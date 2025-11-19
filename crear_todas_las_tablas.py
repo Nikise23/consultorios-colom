@@ -24,6 +24,7 @@ def crear_todas_las_tablas():
                 nombre_completo TEXT,
                 email TEXT,
                 telefono TEXT,
+                especialidad TEXT,
                 activo INTEGER DEFAULT 1,
                 fecha_creacion TEXT DEFAULT CURRENT_TIMESTAMP
             )

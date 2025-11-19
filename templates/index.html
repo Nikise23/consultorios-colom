@@ -2,6 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Panel Principal - Consultorio</title>
 
 
@@ -38,20 +39,23 @@
     body{
       background:#f4f6f9;
       font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;
-      padding:20px;min-height:100vh;display:flex;flex-direction:column
+      padding:10px;min-height:100vh;display:flex;flex-direction:column
     }
     h1,h3,h4{color:#2c3e50}
-    .card-panel{background:#fff;border-radius:16px;box-shadow:0 6px 12px rgb(0 0 0 / .05);padding:25px;margin-bottom:30px}
+    .card-panel{background:#fff;border-radius:16px;box-shadow:0 6px 12px rgb(0 0 0 / .05);padding:15px;margin-bottom:20px}
     #logout-btn{background:#dc3545;color:#fff;font-weight:600;transition:.3s}
     #logout-btn:hover{background:#bb2d3b}
     #info-usuario{font-weight:600;color:#2c3e50;margin-left:auto;white-space:nowrap}
-    .btn-action{width:100%;text-align:left;font-weight:600;font-size:1rem;padding:15px 20px;border-radius:12px;transition:.3s}
+    .btn-action{width:100%;text-align:left;font-weight:600;font-size:0.9rem;padding:12px 16px;border-radius:12px;transition:.3s}
     .btn-action i{margin-right:12px;font-size:1.25rem}
     .btn-outline-primary.btn-action:hover{background:#0d6efd;color:#fff!important}
     .btn-outline-success.btn-action:hover{background:#198754;color:#fff!important}
     .btn-outline-info.btn-action:hover{background:#0dcaf0;color:#fff!important}
     @media(max-width:600px){
       #logout-btn,#info-usuario{float:none;width:100%;text-align:center;margin-bottom:10px}
+      .card-panel{padding:12px;margin-bottom:15px}
+      .btn-action{padding:10px 14px;font-size:0.85rem}
+      body{padding:5px}
     }
     /* Resumen */
     #resumen-medico ul{max-width:400px;margin:0 auto}
@@ -75,7 +79,7 @@
             <p class="text-gray-600">Bienvenido/a <span id="info-usuario" class="text-primary font-semibold"></span></p>
           </div>
         </div>
-        <button onclick="location.href='/logout'" class="bg-danger hover:bg-red-700 text-white px-6 py-3 rounded-lg font-semibold transition-colors duration-200 flex items-center space-x-2">
+        <button onclick="location.href='/logout'" class="bg-danger hover:bg-red-700 text-white px-4 md:px-6 py-2 md:py-3 rounded-lg font-semibold transition-colors duration-200 flex items-center space-x-2">
           <i class="fas fa-sign-out-alt"></i>
           <span>Cerrar Sesión</span>
     </button>
@@ -85,11 +89,11 @@
 
   <!-- Contenido Principal -->
   <div class="flex-1">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-8">
     
     <!-- Estadísticas rápidas -->
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-      <div class="bg-white rounded-xl p-6 shadow-lg border border-gray-200 hover:shadow-xl transition-shadow duration-300">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-6 md:mb-8">
+      <div class="bg-white rounded-xl p-4 md:p-6 shadow-lg border border-gray-200 hover:shadow-xl transition-shadow duration-300">
         <div class="flex items-center">
           <div class="bg-primary p-3 rounded-lg">
             <i class="fas fa-calendar-check text-white text-xl"></i>
@@ -101,7 +105,7 @@
         </div>
       </div>
       
-      <div class="bg-white rounded-xl p-6 shadow-lg border border-gray-200 hover:shadow-xl transition-shadow duration-300">
+      <div class="bg-white rounded-xl p-4 md:p-6 shadow-lg border border-gray-200 hover:shadow-xl transition-shadow duration-300">
         <div class="flex items-center">
           <div class="bg-success p-3 rounded-lg">
             <i class="fas fa-users text-white text-xl"></i>
@@ -113,7 +117,7 @@
         </div>
       </div>
       
-      <div class="bg-white rounded-xl p-6 shadow-lg border border-gray-200 hover:shadow-xl transition-shadow duration-300">
+      <div class="bg-white rounded-xl p-4 md:p-6 shadow-lg border border-gray-200 hover:shadow-xl transition-shadow duration-300">
         <div class="flex items-center">
           <div class="bg-info p-3 rounded-lg">
             <i class="fas fa-user-md text-white text-xl"></i>
@@ -125,7 +129,7 @@
         </div>
       </div>
       
-      <div class="bg-white rounded-xl p-6 shadow-lg border border-gray-200 hover:shadow-xl transition-shadow duration-300">
+      <div class="bg-white rounded-xl p-4 md:p-6 shadow-lg border border-gray-200 hover:shadow-xl transition-shadow duration-300">
         <div class="flex items-center">
           <div class="bg-warning p-3 rounded-lg">
             <i class="fas fa-clock text-white text-xl"></i>
@@ -1830,7 +1834,7 @@
   <footer class="bg-white border-t border-gray-200 mt-12">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
       <div class="text-center text-gray-600">
-        <p>&copy; 2025 Consultorio Colom-Bobbiesi. Desarrollado por <strong>Nicolas Fernandez</strong></p>
+        <p>&copy; 2025 Consultorios Colom. Desarrollado por <strong>Nicolas Fernandez</strong></p>
         <p class="text-sm mt-1">Sistema de gestión de turnos y pacientes</p>
       </div>
     </div>

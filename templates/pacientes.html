@@ -37,19 +37,19 @@
             <p class="text-gray-600">Registro y administración de pacientes</p>
           </div>
         </div>
-        <a href="/" class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg transition-colors duration-200 flex items-center space-x-2">
+        <a href="/secretaria" class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg transition-colors duration-200 flex items-center space-x-2">
           <i class="fas fa-arrow-left"></i>
-          <span>Volver al inicio</span>
+          <span>Volver al Panel de Secretaría</span>
         </a>
       </div>
     </div>
   </div>
 
   <!-- Main Content -->
-  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-    <div class="grid lg:grid-cols-2 gap-8">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-8">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-8">
       <!-- Formulario de registro / modificación -->
-      <div class="bg-white shadow-xl rounded-2xl p-8 border border-gray-100">
+      <div class="bg-white shadow-xl rounded-2xl p-4 md:p-8 border border-gray-100">
         <div class="flex items-center space-x-3 mb-6">
           <div class="bg-primary p-2 rounded-lg">
             <i class="fas fa-user-plus text-white"></i>
@@ -65,7 +65,7 @@
               Información Personal
             </h3>
             
-            <div class="grid md:grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-2">Nombre *</label>
                 <input type="text" id="nombre" placeholder="Ingrese el nombre" class="input-field" required>
@@ -105,7 +105,7 @@
               Información Médica
             </h3>
             
-            <div class="grid md:grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-2">Obra Social *</label>
                 <input type="text" id="obra_social" placeholder="Ej: OSDE, Swiss Medical" class="input-field" required>
@@ -166,7 +166,7 @@
       </div>
 
       <!-- Listado de pacientes -->
-      <div class="bg-white shadow-xl rounded-2xl p-8 border border-gray-100">
+      <div class="bg-white shadow-xl rounded-2xl p-4 md:p-8 border border-gray-100">
         <div class="flex items-center space-x-3 mb-6">
           <div class="bg-secondary p-2 rounded-lg">
             <i class="fas fa-users text-white"></i>
@@ -176,7 +176,7 @@
         
         <!-- Barra de búsqueda -->
         <div class="bg-gray-50 p-4 rounded-lg mb-6">
-          <div class="flex flex-col sm:flex-row gap-3">
+          <div class="flex flex-col sm:flex-row gap-2 md:gap-3">
             <div class="flex-1 relative">
               <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
               <input type="text" id="buscar" placeholder="Buscar por DNI, nombre o apellido..." 
@@ -213,7 +213,7 @@
         <p class="text-gray-400 mb-2">Desarrollado con ❤️ para mejorar la atención médica</p>
         <div class="border-t border-gray-700 pt-4">
           <p class="text-sm text-gray-500">
-            © 2025 Consultorio Colom-Bobbiesi. Desarrollado por <span class="font-semibold text-white">Nicolas Fernandez</span>
+            © 2025 Consultorios Colom. Desarrollado por <span class="font-semibold text-white">Nicolas Fernandez</span>
           </p>
           <p class="text-xs text-gray-600 mt-1">
             Sistema desarrollado para la gestión integral de consultorios médicos
@@ -357,6 +357,28 @@
     }
     // Event listeners para validación en tiempo real
     document.addEventListener('DOMContentLoaded', function() {
+      // Verificar si hay un DNI en la URL (viene del botón "Completar")
+      const urlParams = new URLSearchParams(window.location.search);
+      const dniParam = urlParams.get('dni');
+      
+      if (dniParam) {
+        // Cargar el DNI en el campo (permitiendo editarlo)
+        document.getElementById('dni').value = dniParam;
+        document.getElementById('dni').readOnly = false;
+        
+        // Intentar cargar los datos del paciente si existe
+        cargarDatosPacientePorDNI(dniParam);
+        
+        // Cambiar el título del formulario
+        document.getElementById("form-title").innerText = "Completar Datos del Paciente";
+        document.getElementById("btn-text").innerText = "Actualizar Paciente";
+        
+        // Scroll al formulario
+        setTimeout(() => {
+          document.getElementById("form-paciente").scrollIntoView({ behavior: 'smooth' });
+        }, 100);
+      }
+      
       const fechaNacInput = document.getElementById('fecha_nacimiento');
       const edadInput = document.getElementById('edad');
       const dniInput = document.getElementById('dni');
@@ -491,6 +513,39 @@
             <p class="text-red-600">Error al cargar los pacientes</p>
           </div>
         `;
+      }
+    }
+
+    async function cargarDatosPacientePorDNI(dni) {
+      try {
+        const response = await fetch("/api/pacientes");
+        const pacientes = await response.json();
+        const paciente = pacientes.find(p => p.dni === dni);
+        
+        if (paciente) {
+          // Cargar los datos del paciente en el formulario
+          document.getElementById("form-title").innerText = "Completar Datos del Paciente";
+          document.getElementById("btn-text").innerText = "Actualizar Paciente";
+          document.getElementById("dni").value = paciente.dni;
+          document.getElementById("dni").readOnly = false; // Permitir editar DNI si es necesario
+          document.getElementById("nombre").value = paciente.nombre || '';
+          document.getElementById("apellido").value = paciente.apellido || '';
+          document.getElementById("fecha_nacimiento").value = paciente.fecha_nacimiento || '';
+          document.getElementById("edad").value = paciente.edad ? paciente.edad + ' años' : '';
+          document.getElementById("obra_social").value = paciente.obra_social || '';
+          document.getElementById("numero_obra_social").value = paciente.numero_obra_social || '';
+          document.getElementById("celular").value = paciente.celular || '';
+          // Guardar el DNI original para la actualización
+          document.getElementById("form-paciente").dataset.dniOriginal = paciente.dni;
+          
+          // Limpiar errores
+          ['nombre', 'apellido', 'dni', 'fecha_nacimiento', 'obra_social', 'numero_obra_social', 'celular'].forEach(limpiarError);
+        } else {
+          // Si no existe, solo mostrar el DNI (ya está cargado)
+          console.log('Paciente no encontrado, se creará uno nuevo con el DNI proporcionado');
+        }
+      } catch (error) {
+        console.error('Error al cargar datos del paciente:', error);
       }
     }
 

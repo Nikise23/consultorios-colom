@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Panel del Médico - Consultorio Colom-Bobbiesi</title>
+  <title>Panel del Médico - Consultorios Colom</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
   <script>
@@ -47,7 +47,7 @@
             <i class="fas fa-file-medical"></i>
             <span>Historias Clínicas</span>
           </a>
-          <a href="/" class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg transition-colors duration-200 flex items-center space-x-2">
+          <a href="/inicio" class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg transition-colors duration-200 flex items-center space-x-2">
             <i class="fas fa-home"></i>
             <span>Inicio</span>
           </a>
@@ -192,7 +192,7 @@
   <footer class="bg-white border-t border-gray-200 mt-12">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
       <div class="text-center text-gray-600">
-        <p>&copy; 2025 Consultorio Colom-Bobbiesi. Desarrollado por <strong>Nicolas Fernandez</strong></p>
+        <p>&copy; 2025 Consultorios Colom. Desarrollado por <strong>Nicolas Fernandez</strong></p>
         <p class="text-sm mt-1">Sistema de gestión de turnos y pacientes</p>
       </div>
     </div>
@@ -328,7 +328,7 @@
         const edad = info.edad ? `${info.edad} años` : 'Edad no disponible';
         
         html += `
-          <div class="bg-white border border-gray-200 rounded-lg p-4 mb-4 hover:shadow-md transition-all duration-200 cursor-pointer" onclick="mostrarDetallesPaciente('${paciente.dni_paciente}')">
+          <div class="bg-white border border-gray-200 rounded-lg p-3 md:p-4 mb-4 hover:shadow-md transition-all duration-200 cursor-pointer" onclick="mostrarDetallesPaciente('${paciente.dni_paciente}')">
             <div class="flex justify-between items-start">
               <div class="flex-1">
                 <h4 class="font-semibold text-gray-900 mb-2">${nombreCompleto}</h4>
