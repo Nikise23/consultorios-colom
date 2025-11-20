@@ -115,6 +115,21 @@ def crear_todas_las_tablas():
         """)
         print("✅ Tabla 'historias_clinicas' verificada")
         
+        # Tabla de bloqueos de agenda (vacaciones, etc.)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS bloqueos_agenda (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                medico TEXT NOT NULL,
+                fecha_inicio TEXT NOT NULL,
+                fecha_fin TEXT NOT NULL,
+                motivo TEXT,
+                activo INTEGER DEFAULT 1,
+                fecha_creacion TEXT DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (medico) REFERENCES usuarios(usuario)
+            )
+        """)
+        print("✅ Tabla 'bloqueos_agenda' creada")
+        
         conn.commit()
         print("\n🎉 Todas las tablas creadas exitosamente!")
         

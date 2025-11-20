@@ -1,0 +1,942 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Usuarios y Horarios - Administrador</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .admin-header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 2px solid #667eea;
+            padding: 1.5rem 0;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 2rem;
+        }
+        .admin-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 1rem;
+        }
+        .section-card {
+            background: white;
+            border-radius: 15px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+        .section-title {
+            color: #2d3748;
+            font-weight: 700;
+            font-size: 1.8rem;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 3px solid #667eea;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+        }
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+        .horario-input-group {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+            align-items: center;
+        }
+        .horario-input-group input {
+            flex: 1;
+        }
+        .horario-list {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 0.5rem;
+            margin-top: 0.5rem;
+        }
+        .horario-badge {
+            display: inline-block;
+            background: #667eea;
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            margin: 0.25rem;
+            font-size: 0.9rem;
+        }
+        .horario-badge .btn-remove {
+            background: rgba(255, 255, 255, 0.3);
+            border: none;
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            padding: 0;
+            margin-left: 0.5rem;
+            cursor: pointer;
+        }
+        .horario-badge .btn-remove:hover {
+            background: rgba(255, 255, 255, 0.5);
+        }
+        .alert {
+            border-radius: 10px;
+            border: none;
+        }
+        .table-responsive {
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .btn-danger-sm {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.875rem;
+        }
+        .especialidad-field {
+            display: none;
+        }
+        .especialidad-field.show {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="admin-header">
+        <div class="container">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="h3 mb-0">
+                        <i class="bi bi-gear-fill text-primary"></i> Gestión de Usuarios y Horarios
+                    </h1>
+                    <p class="text-muted mb-0 small">Panel de Administración</p>
+                </div>
+                <div>
+                    <a href="/administrador" class="btn btn-outline-primary">
+                        <i class="bi bi-arrow-left"></i> Volver al Panel
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="admin-container">
+        <!-- Sección 1: Gestión de Usuarios -->
+        <div class="section-card">
+            <h2 class="section-title">
+                <i class="bi bi-people-fill"></i> Gestión de Usuarios
+            </h2>
+            
+            <!-- Formulario de Crear Usuario -->
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="bi bi-person-plus"></i> Crear Nuevo Usuario</h5>
+                </div>
+                <div class="card-body">
+                    <form id="form-crear-usuario">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="usuario" class="form-label">Usuario *</label>
+                                <input type="text" class="form-control" id="usuario" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="contrasena" class="form-label">Contraseña *</label>
+                                <input type="password" class="form-control" id="contrasena" required>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="rol" class="form-label">Rol *</label>
+                                <select class="form-select" id="rol" required>
+                                    <option value="">Seleccione un rol</option>
+                                    <option value="medico">Médico</option>
+                                    <option value="secretaria">Secretaria</option>
+                                    <option value="administrador">Administrador</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="especialidad" class="form-label especialidad-field" id="label-especialidad">Especialidad</label>
+                                <input type="text" class="form-control especialidad-field" id="especialidad" placeholder="Ej: Oftalmología, Traumatología, Pediatría...">
+                                <small class="form-text text-muted especialidad-field" id="help-especialidad">Solo para médicos</small>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-circle"></i> Crear Usuario
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Lista de Usuarios -->
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0"><i class="bi bi-list-ul"></i> Usuarios Existentes</h5>
+                </div>
+                <div class="card-body">
+                    <div id="usuarios-container" class="table-responsive">
+                        <div class="text-center py-4">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Cargando...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal para Editar Usuario -->
+        <div class="modal fade" id="modal-editar-usuario" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title"><i class="bi bi-pencil"></i> Editar Usuario</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="form-editar-usuario">
+                            <input type="hidden" id="edit-usuario-original">
+                            <div class="mb-3">
+                                <label for="edit-usuario" class="form-label">Usuario</label>
+                                <input type="text" class="form-control" id="edit-usuario" readonly>
+                                <small class="form-text text-muted">El nombre de usuario no se puede modificar</small>
+                            </div>
+                            <div class="mb-3">
+                                <label for="edit-rol" class="form-label">Rol</label>
+                                <select class="form-select" id="edit-rol">
+                                    <option value="medico">Médico</option>
+                                    <option value="secretaria">Secretaría</option>
+                                    <option value="administrador">Administrador</option>
+                                </select>
+                            </div>
+                            <div class="mb-3 especialidad-field-edit" id="edit-especialidad-container" style="display: none;">
+                                <label for="edit-especialidad" class="form-label" id="edit-label-especialidad">Especialidad *</label>
+                                <input type="text" class="form-control" id="edit-especialidad" placeholder="Ej: Oftalmología, Traumatología, Pediatría">
+                                <small class="form-text text-muted" id="edit-help-especialidad">Especialidad médica del profesional</small>
+                            </div>
+                            <div class="mb-3">
+                                <label for="edit-contrasena" class="form-label">Nueva Contraseña</label>
+                                <input type="password" class="form-control" id="edit-contrasena" placeholder="Dejar vacío para no cambiar">
+                                <small class="form-text text-muted">Solo complete si desea cambiar la contraseña</small>
+                            </div>
+                            <div class="mb-3">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="edit-activo" checked>
+                                    <label class="form-check-label" for="edit-activo">
+                                        <strong>Usuario Activo</strong>
+                                    </label>
+                                    <small class="form-text text-muted d-block">
+                                        Si está desactivado, el usuario no aparecerá en las listas públicas ni en los selectores del sistema
+                                    </small>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="button" class="btn btn-primary" onclick="guardarEdicionUsuario()">Guardar Cambios</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sección 2: Gestión de Horarios -->
+        <div class="section-card">
+            <h2 class="section-title">
+                <i class="bi bi-calendar-week"></i> Gestión de Horarios Médicos
+            </h2>
+
+            <!-- Selección de Médico -->
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="bi bi-person-badge"></i> Seleccionar Médico</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label for="medico-select" class="form-label">Médico</label>
+                        <select class="form-select" id="medico-select">
+                            <option value="">Cargando médicos...</option>
+                        </select>
+                        <small class="form-text text-muted">Seleccione un médico para configurar sus horarios</small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Configuración de Horarios por Día -->
+            <div id="horarios-section" style="display: none;">
+                <div class="card">
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0"><i class="bi bi-clock"></i> Horarios por Día de la Semana</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="dias-container"></div>
+                        <div class="mt-4">
+                            <button type="button" class="btn btn-primary btn-lg" onclick="guardarHorarios()">
+                                <i class="bi bi-save"></i> Guardar Horarios
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary btn-lg ms-2" onclick="limpiarHorarios()">
+                                <i class="bi bi-arrow-counterclockwise"></i> Limpiar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Variables globales
+        let usuarios = [];
+        let medicos = [];
+        let horariosMedico = {};
+
+        // Cargar usuarios al iniciar
+        document.addEventListener('DOMContentLoaded', function() {
+            cargarUsuarios();
+            cargarMedicos();
+            configurarFormulario();
+        });
+
+        // Configurar formulario de crear usuario
+        function configurarFormulario() {
+            const rolSelect = document.getElementById('rol');
+            const especialidadField = document.getElementById('especialidad');
+            const labelEspecialidad = document.getElementById('label-especialidad');
+            const helpEspecialidad = document.getElementById('help-especialidad');
+
+            rolSelect.addEventListener('change', function() {
+                if (this.value === 'medico') {
+                    especialidadField.classList.add('show');
+                    labelEspecialidad.classList.add('show');
+                    helpEspecialidad.classList.add('show');
+                    especialidadField.required = true;
+                } else {
+                    especialidadField.classList.remove('show');
+                    labelEspecialidad.classList.remove('show');
+                    helpEspecialidad.classList.remove('show');
+                    especialidadField.required = false;
+                    especialidadField.value = '';
+                }
+            });
+
+            // Formulario crear usuario
+            document.getElementById('form-crear-usuario').addEventListener('submit', function(e) {
+                e.preventDefault();
+                crearUsuario();
+            });
+
+            // Selector de médico
+            document.getElementById('medico-select').addEventListener('change', function() {
+                const medico = this.value;
+                if (medico) {
+                    cargarHorariosMedico(medico);
+                    document.getElementById('horarios-section').style.display = 'block';
+                } else {
+                    document.getElementById('horarios-section').style.display = 'none';
+                }
+            });
+        }
+
+        // Cargar usuarios
+        async function cargarUsuarios() {
+            try {
+                const response = await fetch('/api/usuarios');
+                usuarios = await response.json();
+                mostrarUsuarios();
+            } catch (error) {
+                mostrarAlerta('Error al cargar usuarios', 'danger');
+                console.error('Error:', error);
+            }
+        }
+
+        // Mostrar usuarios en tabla
+        function mostrarUsuarios() {
+            const container = document.getElementById('usuarios-container');
+            if (usuarios.length === 0) {
+                container.innerHTML = '<p class="text-muted text-center py-4">No hay usuarios registrados</p>';
+                return;
+            }
+
+            let html = `
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Usuario</th>
+                            <th>Rol</th>
+                            <th>Especialidad</th>
+                            <th>Estado</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            usuarios.forEach(user => {
+                // Interpretar activo correctamente (puede ser 1, 0, true, false, o undefined)
+                const estaActivo = user.activo !== undefined && user.activo !== null 
+                    ? (user.activo === 1 || user.activo === true || user.activo === '1') 
+                    : true; // Por defecto activo si no está definido
+                
+                html += `
+                    <tr>
+                        <td>${user.id || '-'}</td>
+                        <td>${user.usuario}</td>
+                        <td><span class="badge bg-primary">${user.rol}</span></td>
+                        <td>${user.especialidad || '-'}</td>
+                        <td><span class="badge ${estaActivo ? 'bg-success' : 'bg-secondary'}">${estaActivo ? 'Activo' : 'Inactivo'}</span></td>
+                        <td>
+                            <button class="btn btn-primary btn-sm me-1" onclick="editarUsuario('${user.usuario}')" title="Editar">
+                                <i class="bi bi-pencil"></i>
+                            </button>
+                            <button class="btn btn-danger btn-sm btn-danger-sm" onclick="eliminarUsuario('${user.usuario}')" title="Eliminar">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            html += `
+                    </tbody>
+                </table>
+            `;
+
+            container.innerHTML = html;
+        }
+
+        // Crear usuario
+        async function crearUsuario() {
+            const usuario = document.getElementById('usuario').value.trim();
+            const contrasena = document.getElementById('contrasena').value;
+            const rol = document.getElementById('rol').value;
+            const especialidad = document.getElementById('especialidad').value.trim();
+
+            if (!usuario || !contrasena || !rol) {
+                mostrarAlerta('Por favor complete todos los campos requeridos', 'warning');
+                return;
+            }
+
+            if (rol === 'medico' && !especialidad) {
+                mostrarAlerta('La especialidad es requerida para médicos', 'warning');
+                return;
+            }
+
+            const data = {
+                usuario: usuario,
+                contrasena: contrasena,
+                rol: rol
+            };
+
+            if (rol === 'medico' && especialidad) {
+                data.especialidad = especialidad;
+            }
+
+            try {
+                const response = await fetch('/api/usuarios', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    mostrarAlerta('Usuario creado correctamente', 'success');
+                    document.getElementById('form-crear-usuario').reset();
+                    document.getElementById('especialidad').classList.remove('show');
+                    document.getElementById('label-especialidad').classList.remove('show');
+                    document.getElementById('help-especialidad').classList.remove('show');
+                    cargarUsuarios();
+                    cargarMedicos(); // Recargar médicos para el selector
+                } else {
+                    mostrarAlerta(result.error || 'Error al crear usuario', 'danger');
+                }
+            } catch (error) {
+                mostrarAlerta('Error al crear usuario: ' + error.message, 'danger');
+                console.error('Error:', error);
+            }
+        }
+
+        // Editar usuario
+        async function editarUsuario(usuario) {
+            const user = usuarios.find(u => u.usuario === usuario);
+            if (!user) {
+                mostrarAlerta('Usuario no encontrado', 'danger');
+                return;
+            }
+
+            // Llenar formulario
+            document.getElementById('edit-usuario-original').value = usuario;
+            document.getElementById('edit-usuario').value = usuario;
+            document.getElementById('edit-rol').value = user.rol || 'medico';
+            document.getElementById('edit-especialidad').value = user.especialidad || '';
+            document.getElementById('edit-contrasena').value = '';
+            
+            // Cargar estado activo (1 = activo, 0 = inactivo, undefined/null = activo por defecto)
+            const estaActivo = user.activo !== undefined ? (user.activo === 1 || user.activo === true) : true;
+            document.getElementById('edit-activo').checked = estaActivo;
+
+            // Mostrar/ocultar campo de especialidad según el rol
+            const especialidadContainer = document.getElementById('edit-especialidad-container');
+            if (user.rol === 'medico') {
+                especialidadContainer.style.display = 'block';
+            } else {
+                especialidadContainer.style.display = 'none';
+            }
+
+            // Configurar evento para mostrar/ocultar especialidad cuando cambie el rol
+            const rolSelect = document.getElementById('edit-rol');
+            rolSelect.onchange = function() {
+                if (this.value === 'medico') {
+                    especialidadContainer.style.display = 'block';
+                } else {
+                    especialidadContainer.style.display = 'none';
+                }
+            };
+
+            // Mostrar modal
+            const modal = new bootstrap.Modal(document.getElementById('modal-editar-usuario'));
+            modal.show();
+        }
+
+        // Guardar edición de usuario
+        async function guardarEdicionUsuario() {
+            const usuario = document.getElementById('edit-usuario-original').value;
+            const rol = document.getElementById('edit-rol').value;
+            const especialidad = document.getElementById('edit-especialidad').value.trim();
+            const contrasena = document.getElementById('edit-contrasena').value.trim();
+            const activo = document.getElementById('edit-activo').checked;
+
+            if (rol === 'medico' && !especialidad) {
+                mostrarAlerta('La especialidad es requerida para médicos', 'warning');
+                return;
+            }
+
+            const data = {
+                rol: rol,
+                activo: activo
+            };
+
+            if (rol === 'medico' && especialidad) {
+                data.especialidad = especialidad;
+            } else if (rol !== 'medico') {
+                data.especialidad = null;
+            }
+
+            if (contrasena) {
+                data.contrasena = contrasena;
+            }
+
+            try {
+                const response = await fetch(`/api/usuarios/${usuario}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    mostrarAlerta('Usuario actualizado correctamente', 'success');
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('modal-editar-usuario'));
+                    modal.hide();
+                    cargarUsuarios();
+                    cargarMedicos(); // Recargar médicos para el selector
+                } else {
+                    mostrarAlerta(result.error || 'Error al actualizar usuario', 'danger');
+                }
+            } catch (error) {
+                mostrarAlerta('Error al actualizar usuario: ' + error.message, 'danger');
+                console.error('Error:', error);
+            }
+        }
+
+        // Eliminar usuario
+        async function eliminarUsuario(usuario) {
+            if (!confirm(`¿Está seguro de eliminar al usuario "${usuario}"?`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/usuarios/${usuario}`, {
+                    method: 'DELETE'
+                });
+
+                if (response.ok) {
+                    mostrarAlerta('Usuario eliminado correctamente', 'success');
+                    cargarUsuarios();
+                    cargarMedicos(); // Recargar médicos
+                } else {
+                    const result = await response.json();
+                    mostrarAlerta(result.error || 'Error al eliminar usuario', 'danger');
+                }
+            } catch (error) {
+                mostrarAlerta('Error al eliminar usuario: ' + error.message, 'danger');
+                console.error('Error:', error);
+            }
+        }
+
+        // Cargar médicos para el selector
+        async function cargarMedicos() {
+            try {
+                const response = await fetch('/api/usuarios');
+                if (!response.ok) {
+                    throw new Error('Error al cargar usuarios');
+                }
+                const todosUsuarios = await response.json();
+                console.log('Usuarios cargados:', todosUsuarios);
+                
+                // Filtrar médicos (activo puede ser 1, true, o undefined/null)
+                medicos = todosUsuarios.filter(u => {
+                    const esMedico = u.rol === 'medico' || u.rol === 'Medico' || u.rol === 'MÉDICO';
+                    const estaActivo = u.activo !== undefined ? (u.activo === 1 || u.activo === true) : true;
+                    return esMedico && estaActivo;
+                });
+                
+                console.log('Médicos filtrados:', medicos);
+                
+                const select = document.getElementById('medico-select');
+                if (!select) {
+                    console.error('No se encontró el elemento medico-select');
+                    return;
+                }
+                
+                select.innerHTML = '<option value="">Seleccione un médico</option>';
+                
+                if (medicos.length === 0) {
+                    const option = document.createElement('option');
+                    option.value = '';
+                    option.textContent = 'No hay médicos disponibles';
+                    option.disabled = true;
+                    select.appendChild(option);
+                    mostrarAlerta('No hay médicos registrados. Crea un médico primero.', 'warning');
+                    return;
+                }
+                
+                medicos.forEach(medico => {
+                    const option = document.createElement('option');
+                    option.value = medico.usuario;
+                    const nombre = medico.nombre_completo || medico.usuario;
+                    const especialidad = medico.especialidad ? ` - ${medico.especialidad}` : '';
+                    option.textContent = `${nombre}${especialidad}`;
+                    select.appendChild(option);
+                });
+                
+                console.log(`${medicos.length} médico(s) cargado(s) en el selector`);
+            } catch (error) {
+                console.error('Error al cargar médicos:', error);
+                mostrarAlerta('Error al cargar médicos: ' + error.message, 'danger');
+            }
+        }
+
+        // Cargar horarios de un médico
+        async function cargarHorariosMedico(medico) {
+            try {
+                const response = await fetch(`/api/agenda`);
+                const agenda = await response.json();
+                
+                horariosMedico = agenda[medico] || {};
+                mostrarFormularioHorarios();
+            } catch (error) {
+                mostrarAlerta('Error al cargar horarios', 'danger');
+                console.error('Error:', error);
+            }
+        }
+
+        // Mostrar formulario de horarios por día
+        function mostrarFormularioHorarios() {
+            const container = document.getElementById('dias-container');
+            const dias = [
+                { key: 'LUNES', label: 'Lunes' },
+                { key: 'MARTES', label: 'Martes' },
+                { key: 'MIERCOLES', label: 'Miércoles' },
+                { key: 'JUEVES', label: 'Jueves' },
+                { key: 'VIERNES', label: 'Viernes' },
+                { key: 'SABADO', label: 'Sábado' },
+                { key: 'DOMINGO', label: 'Domingo' }
+            ];
+
+            let html = '';
+
+            dias.forEach(dia => {
+                const horarios = horariosMedico[dia.key] || [];
+                html += `
+                    <div class="mb-4 p-3 border rounded">
+                        <h6 class="fw-bold mb-3">${dia.label}</h6>
+                        
+                        <!-- Agregar horario individual -->
+                        <div class="mb-3">
+                            <label class="form-label small text-muted">Agregar horario individual:</label>
+                            <div class="d-flex gap-2">
+                                <input type="time" class="form-control" id="hora-${dia.key}" step="300" style="max-width: 200px;">
+                                <button type="button" class="btn btn-outline-primary" onclick="agregarHorario('${dia.key}')">
+                                    <i class="bi bi-plus-circle"></i> Agregar
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Agregar horarios por rango -->
+                        <div class="mb-3 p-3 bg-light rounded">
+                            <label class="form-label small text-muted fw-bold">Agregar horarios por rango:</label>
+                            <div class="row g-2 align-items-end">
+                                <div class="col-md-3">
+                                    <label class="form-label small">Hora inicio:</label>
+                                    <input type="time" class="form-control form-control-sm" id="hora-inicio-${dia.key}" step="300">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label small">Hora fin:</label>
+                                    <input type="time" class="form-control form-control-sm" id="hora-fin-${dia.key}" step="300">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label small">Intervalo:</label>
+                                    <select class="form-select form-select-sm" id="intervalo-${dia.key}">
+                                        <option value="5">Cada 5 minutos</option>
+                                        <option value="10">Cada 10 minutos</option>
+                                        <option value="15" selected>Cada 15 minutos</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <button type="button" class="btn btn-primary btn-sm w-100" onclick="agregarHorarioRango('${dia.key}')">
+                                        <i class="bi bi-calendar-range"></i> Agregar Rango
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Lista de horarios -->
+                        <div class="horario-list" id="lista-${dia.key}">
+                            ${horarios.map(h => `
+                                <span class="horario-badge">
+                                    ${h}
+                                    <button type="button" class="btn-remove" onclick="eliminarHorario('${dia.key}', '${h}')">×</button>
+                                </span>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+        }
+
+        // Agregar horario a un día
+        function agregarHorario(dia) {
+            const input = document.getElementById(`hora-${dia}`);
+            const hora = input.value;
+
+            if (!hora) {
+                mostrarAlerta('Por favor seleccione una hora', 'warning');
+                return;
+            }
+
+            if (!horariosMedico[dia]) {
+                horariosMedico[dia] = [];
+            }
+
+            if (horariosMedico[dia].includes(hora)) {
+                mostrarAlerta('Este horario ya está agregado', 'warning');
+                return;
+            }
+
+            horariosMedico[dia].push(hora);
+            horariosMedico[dia].sort();
+
+            actualizarListaHorarios(dia);
+            input.value = '';
+        }
+
+        // Agregar horarios por rango
+        function agregarHorarioRango(dia) {
+            const horaInicio = document.getElementById(`hora-inicio-${dia}`).value;
+            const horaFin = document.getElementById(`hora-fin-${dia}`).value;
+            const intervalo = parseInt(document.getElementById(`intervalo-${dia}`).value);
+
+            if (!horaInicio || !horaFin) {
+                mostrarAlerta('Por favor complete hora inicio y hora fin', 'warning');
+                return;
+            }
+
+            // Convertir horas a minutos para facilitar cálculos
+            const [hInicio, mInicio] = horaInicio.split(':').map(Number);
+            const [hFin, mFin] = horaFin.split(':').map(Number);
+            
+            const minutosInicio = hInicio * 60 + mInicio;
+            const minutosFin = hFin * 60 + mFin;
+
+            if (minutosInicio >= minutosFin) {
+                mostrarAlerta('La hora fin debe ser posterior a la hora inicio', 'warning');
+                return;
+            }
+
+            if (!horariosMedico[dia]) {
+                horariosMedico[dia] = [];
+            }
+
+            // Generar todos los horarios en el rango
+            const nuevosHorarios = [];
+            for (let minutos = minutosInicio; minutos <= minutosFin; minutos += intervalo) {
+                const horas = Math.floor(minutos / 60);
+                const mins = minutos % 60;
+                const horaFormato = `${String(horas).padStart(2, '0')}:${String(mins).padStart(2, '0')}`;
+                
+                // Solo agregar si no existe ya
+                if (!horariosMedico[dia].includes(horaFormato)) {
+                    nuevosHorarios.push(horaFormato);
+                }
+            }
+
+            if (nuevosHorarios.length === 0) {
+                mostrarAlerta('Todos los horarios del rango ya están agregados', 'info');
+                return;
+            }
+
+            // Agregar nuevos horarios
+            horariosMedico[dia].push(...nuevosHorarios);
+            horariosMedico[dia].sort();
+
+            actualizarListaHorarios(dia);
+            
+            // Limpiar campos
+            document.getElementById(`hora-inicio-${dia}`).value = '';
+            document.getElementById(`hora-fin-${dia}`).value = '';
+            
+            mostrarAlerta(`Se agregaron ${nuevosHorarios.length} horario(s) para ${dia}`, 'success');
+        }
+
+        // Actualizar lista de horarios en el DOM
+        function actualizarListaHorarios(dia) {
+            const lista = document.getElementById(`lista-${dia}`);
+            if (!lista) return;
+            
+            lista.innerHTML = horariosMedico[dia].map(h => `
+                <span class="horario-badge">
+                    ${h}
+                    <button type="button" class="btn-remove" onclick="eliminarHorario('${dia}', '${h}')">×</button>
+                </span>
+            `).join('');
+        }
+
+        // Eliminar horario de un día
+        function eliminarHorario(dia, hora) {
+            if (horariosMedico[dia]) {
+                horariosMedico[dia] = horariosMedico[dia].filter(h => h !== hora);
+                actualizarListaHorarios(dia);
+            }
+        }
+
+        // Guardar horarios
+        async function guardarHorarios() {
+            const medico = document.getElementById('medico-select').value;
+            if (!medico) {
+                mostrarAlerta('Por favor seleccione un médico', 'warning');
+                return;
+            }
+
+            // Convertir formato de días (LUNES -> Lunes para la API)
+            const diasMap = {
+                'LUNES': 'Lunes',
+                'MARTES': 'Martes',
+                'MIERCOLES': 'Miércoles',
+                'JUEVES': 'Jueves',
+                'VIERNES': 'Viernes',
+                'SABADO': 'Sábado',
+                'DOMINGO': 'Domingo'
+            };
+
+            const data = {};
+            let totalHorarios = 0;
+            Object.keys(horariosMedico).forEach(dia => {
+                if (horariosMedico[dia].length > 0) {
+                    data[diasMap[dia] || dia] = horariosMedico[dia];
+                    totalHorarios += horariosMedico[dia].length;
+                }
+            });
+
+            if (totalHorarios === 0) {
+                mostrarAlerta('No hay horarios para guardar', 'warning');
+                return;
+            }
+
+            // Mostrar indicador de carga
+            const btnGuardar = document.querySelector('button[onclick="guardarHorarios()"]');
+            const textoOriginal = btnGuardar.innerHTML;
+            btnGuardar.disabled = true;
+            btnGuardar.innerHTML = '<i class="bi bi-hourglass-split"></i> Guardando...';
+
+            try {
+                const response = await fetch(`/api/agenda/${medico}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    mostrarAlerta(`✓ Horarios guardados correctamente. Se guardaron ${totalHorarios} horario(s) para el médico seleccionado.`, 'success');
+                } else {
+                    mostrarAlerta(result.error || 'Error al guardar horarios', 'danger');
+                }
+            } catch (error) {
+                mostrarAlerta('Error al guardar horarios: ' + error.message, 'danger');
+                console.error('Error:', error);
+            } finally {
+                btnGuardar.disabled = false;
+                btnGuardar.innerHTML = textoOriginal;
+            }
+        }
+
+        // Limpiar horarios
+        function limpiarHorarios() {
+            if (!confirm('¿Está seguro de limpiar todos los horarios?')) {
+                return;
+            }
+            horariosMedico = {};
+            mostrarFormularioHorarios();
+        }
+
+        // Mostrar alerta
+        function mostrarAlerta(mensaje, tipo) {
+            // Remover alertas anteriores del mismo tipo
+            const alertasExistentes = document.querySelectorAll('.alert-auto-dismiss');
+            alertasExistentes.forEach(alert => alert.remove());
+            
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${tipo} alert-dismissible fade show alert-auto-dismiss`;
+            alertDiv.setAttribute('role', 'alert');
+            alertDiv.style.cssText = 'position: fixed; top: 20px; right: 20px; z-index: 9999; min-width: 300px; max-width: 500px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);';
+            alertDiv.innerHTML = `
+                <strong>${tipo === 'success' ? '✓' : tipo === 'danger' ? '✗' : '⚠'}</strong> ${mensaje}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            `;
+            
+            document.body.appendChild(alertDiv);
+            
+            // Auto-dismiss después de 5 segundos
+            setTimeout(() => {
+                if (alertDiv && alertDiv.parentNode) {
+                    alertDiv.classList.remove('show');
+                    setTimeout(() => alertDiv.remove(), 150);
+                }
+            }, 5000);
+        }
+    </script>
+</body>
+</html>
+

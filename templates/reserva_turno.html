@@ -553,6 +553,24 @@
           <!-- Paso 3: Fecha y Hora -->
           <div class="form-section" id="step3">
             <h4 class="mb-4"><i class="bi bi-calendar-event"></i> Seleccione Fecha y Hora</h4>
+            
+            <!-- Información del médico -->
+            <div id="info-medico-container" class="mb-4" style="display: none;">
+              <div class="card bg-light border-primary">
+                <div class="card-body">
+                  <h6 class="card-title"><i class="bi bi-info-circle"></i> Información del Médico</h6>
+                  <div class="mb-2">
+                    <strong>Días que atiende:</strong>
+                    <div id="dias-atiende" class="mt-1"></div>
+                  </div>
+                  <div class="mt-3">
+                    <strong>Sugerencias de turnos próximos:</strong>
+                    <div id="proximos-turnos" class="mt-2"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
             <div class="mb-3">
               <label for="fecha" class="form-label">Fecha *</label>
               <input type="date" class="form-control" id="fecha" required>
@@ -795,10 +813,100 @@
       }
     }
 
-    function seleccionarMedico(usuario, nombre) {
+    async function seleccionarMedico(usuario, nombre) {
       datosReserva.medico = usuario;
       datosReserva.medicoNombre = nombre;
+      
+      // Cargar información del médico (días que atiende y próximos turnos)
+      await cargarInfoMedico(usuario);
+      
       cambiarPaso(3); // Paso 3 es fecha y hora
+    }
+
+    async function cargarInfoMedico(medico) {
+      try {
+        const response = await fetch(`/api/public/medico-info?medico=${encodeURIComponent(medico)}`);
+        const info = await response.json();
+        
+        if (response.ok && info) {
+          mostrarInfoMedico(info);
+        }
+      } catch (error) {
+        console.error('Error al cargar información del médico:', error);
+      }
+    }
+
+    function mostrarInfoMedico(info) {
+      const container = document.getElementById('info-medico-container');
+      const diasContainer = document.getElementById('dias-atiende');
+      const turnosContainer = document.getElementById('proximos-turnos');
+      
+      // Mostrar días que atiende
+      if (info.dias_atiende && info.dias_atiende.length > 0) {
+        diasContainer.innerHTML = info.dias_atiende.map(dia => 
+          `<span class="badge bg-primary me-1 mb-1">${dia}</span>`
+        ).join('');
+      } else {
+        diasContainer.innerHTML = '<span class="text-muted">No hay días configurados</span>';
+      }
+      
+      // Mostrar bloqueos (vacaciones)
+      if (info.bloqueos && info.bloqueos.length > 0) {
+        const bloqueosHtml = info.bloqueos.map(bloqueo => {
+          const fechaInicio = new Date(bloqueo.fecha_inicio + 'T00:00:00');
+          const fechaFin = new Date(bloqueo.fecha_fin + 'T00:00:00');
+          return `
+            <div class="alert alert-warning mt-2 mb-2">
+              <i class="bi bi-exclamation-triangle"></i> 
+              <strong>No disponible:</strong> ${fechaInicio.toLocaleDateString('es-ES')} - ${fechaFin.toLocaleDateString('es-ES')}
+              ${bloqueo.motivo ? ` (${bloqueo.motivo})` : ''}
+            </div>
+          `;
+        }).join('');
+        
+        diasContainer.insertAdjacentHTML('afterend', bloqueosHtml);
+      }
+      
+      // Mostrar próximos turnos sugeridos
+      if (info.proximos_turnos && info.proximos_turnos.length > 0) {
+        turnosContainer.innerHTML = info.proximos_turnos.map(turno => {
+          return `
+            <button type="button" class="btn btn-outline-success btn-sm me-2 mb-2 turno-sugerido" 
+                    data-fecha="${turno.fecha}" 
+                    data-hora="${turno.hora}"
+                    onclick="seleccionarTurnoSugerido('${turno.fecha}', '${turno.hora}')">
+              <i class="bi bi-calendar-check"></i> ${turno.dia_semana} ${turno.fecha_formato} - ${turno.hora}
+            </button>
+          `;
+        }).join('');
+      } else {
+        turnosContainer.innerHTML = '<span class="text-muted">No hay turnos disponibles en los próximos días</span>';
+      }
+      
+      container.style.display = 'block';
+    }
+
+    function seleccionarTurnoSugerido(fecha, hora) {
+      // Establecer la fecha y hora
+      document.getElementById('fecha').value = fecha;
+      datosReserva.fecha = fecha;
+      datosReserva.hora = hora;
+      
+      // Cargar horarios para esa fecha
+      cargarHorarios().then(() => {
+        // Después de cargar, seleccionar el horario automáticamente
+        setTimeout(() => {
+          const horarioBtn = Array.from(document.querySelectorAll('.horario-btn')).find(btn => 
+            btn.textContent.trim() === hora
+          );
+          if (horarioBtn) {
+            horarioBtn.click();
+          } else {
+            // Si no se encuentra el botón, avanzar directamente al paso de confirmación
+            cambiarPaso(4);
+          }
+        }, 500);
+      });
     }
 
     document.getElementById('fecha').addEventListener('change', async function() {
@@ -817,7 +925,20 @@
       
       try {
         const response = await fetch(`/api/public/turnos-disponibles?medico=${encodeURIComponent(datosReserva.medico)}&fecha=${datosReserva.fecha}`);
-        const horarios = await response.json();
+        const result = await response.json();
+        
+        // Verificar si hay un bloqueo
+        if (!response.ok && result.bloqueado) {
+          container.innerHTML = `
+            <div class="alert alert-warning w-100">
+              <i class="bi bi-exclamation-triangle"></i> 
+              <strong>No disponible:</strong> ${result.motivo || 'El médico no está disponible en esta fecha'}
+            </div>
+          `;
+          return;
+        }
+        
+        const horarios = result;
         
         if (horarios.length === 0) {
           container.innerHTML = '<p class="text-muted w-100 text-center py-3">No hay horarios disponibles para esta fecha</p>';

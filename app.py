@@ -342,15 +342,21 @@ def cargar_usuarios_db():
     conn = get_db_connection()
     c = conn.cursor()
     try:
-        c.execute("SELECT usuario, contrasena, rol, especialidad FROM usuarios")
+        c.execute("SELECT id, usuario, contrasena, rol, nombre_completo, email, telefono, especialidad, activo, fecha_creacion FROM usuarios")
         usuarios_data = c.fetchall()
         usuarios = []
         for row in usuarios_data:
             usuarios.append({
-                "usuario": row[0],
-                "contrasena": row[1],
-                "rol": row[2],
-                "especialidad": row[3] if len(row) > 3 else None
+                "id": row[0],
+                "usuario": row[1],
+                "contrasena": row[2],
+                "rol": row[3],
+                "nombre_completo": row[4] if len(row) > 4 else None,
+                "email": row[5] if len(row) > 5 else None,
+                "telefono": row[6] if len(row) > 6 else None,
+                "especialidad": row[7] if len(row) > 7 else None,
+                "activo": row[8] if len(row) > 8 else 1,  # Por defecto activo si no existe
+                "fecha_creacion": row[9] if len(row) > 9 else None
             })
         conn.close()
         print(f"DEBUG: {len(usuarios)} usuarios cargados de BD")
@@ -547,9 +553,37 @@ def crear_usuario():
         if conn:
             conn.close()
 
-@app.route("/api/usuarios/<usuario>", methods=["PUT"])
+@app.route("/api/usuarios/<usuario>", methods=["PUT", "DELETE"])
 @login_requerido
 @rol_permitido(["administrador"])
+def gestionar_usuario(usuario):
+    if request.method == "DELETE":
+        """Eliminar un usuario"""
+        conn = None
+        try:
+            conn = get_db_connection()
+            cur = conn.cursor()
+            
+            # Verificar que el usuario existe
+            cur.execute("SELECT usuario FROM usuarios WHERE usuario = ?", (usuario,))
+            if not cur.fetchone():
+                return jsonify({"error": "Usuario no encontrado"}), 404
+            
+            # Eliminar usuario
+            cur.execute("DELETE FROM usuarios WHERE usuario = ?", (usuario,))
+            conn.commit()
+            return jsonify({"success": True, "mensaje": "Usuario eliminado correctamente"})
+        except Exception as e:
+            if conn:
+                conn.rollback()
+            return jsonify({"error": f"Error al eliminar usuario: {str(e)}"}), 500
+        finally:
+            if conn:
+                conn.close()
+    
+    # PUT - Actualizar usuario
+    return actualizar_usuario(usuario)
+
 def actualizar_usuario(usuario):
     """Actualizar un usuario existente (incluyendo especialidad)"""
     data = request.get_json(silent=True)
@@ -593,6 +627,11 @@ def actualizar_usuario(usuario):
             elif especialidad:
                 # Si no es médico, eliminar especialidad
                 actualizaciones.append("especialidad = NULL")
+        
+        if "activo" in data:
+            activo = 1 if data["activo"] in [True, 1, "1", "true", "True"] else 0
+            actualizaciones.append("activo = ?")
+            valores.append(activo)
         
         if not actualizaciones:
             return jsonify({"error": "No hay campos para actualizar"}), 400
@@ -930,6 +969,133 @@ def actualizar_agenda_medico(medico):
     finally:
         if conn:
             conn.close()
+
+@app.route("/api/bloqueos-agenda", methods=["GET", "POST"])
+@login_requerido
+@rol_permitido(["secretaria", "administrador"])
+def gestionar_bloqueos():
+    """Gestionar bloqueos de agenda (vacaciones, etc.)"""
+    if request.method == "GET":
+        # Obtener todos los bloqueos activos
+        medico = request.args.get('medico', '').strip()
+        conn = None
+        try:
+            conn = get_db_connection()
+            c = conn.cursor()
+            
+            if medico:
+                c.execute("""
+                    SELECT id, medico, fecha_inicio, fecha_fin, motivo, activo, fecha_creacion
+                    FROM bloqueos_agenda
+                    WHERE medico = ? AND activo = 1
+                    ORDER BY fecha_inicio DESC
+                """, (medico,))
+            else:
+                c.execute("""
+                    SELECT id, medico, fecha_inicio, fecha_fin, motivo, activo, fecha_creacion
+                    FROM bloqueos_agenda
+                    WHERE activo = 1
+                    ORDER BY fecha_inicio DESC
+                """)
+            
+            bloqueos = []
+            for row in c.fetchall():
+                bloqueos.append({
+                    "id": row[0],
+                    "medico": row[1],
+                    "fecha_inicio": row[2],
+                    "fecha_fin": row[3],
+                    "motivo": row[4] or "",
+                    "activo": row[5],
+                    "fecha_creacion": row[6]
+                })
+            
+            conn.close()
+            return jsonify(bloqueos)
+        except Exception as e:
+            if conn:
+                conn.close()
+            return jsonify({"error": f"Error al obtener bloqueos: {str(e)}"}), 500
+    
+    elif request.method == "POST":
+        # Crear nuevo bloqueo
+        data = request.get_json(silent=True)
+        if not isinstance(data, dict):
+            return jsonify({"error": "Cuerpo inválido; enviar JSON"}), 400
+        
+        medico = str(data.get("medico", "")).strip()
+        fecha_inicio = str(data.get("fecha_inicio", "")).strip()
+        fecha_fin = str(data.get("fecha_fin", "")).strip()
+        motivo = str(data.get("motivo", "")).strip()
+        
+        if not all([medico, fecha_inicio, fecha_fin]):
+            return jsonify({"error": "Médico, fecha_inicio y fecha_fin son requeridos"}), 400
+        
+        # Validar fechas
+        try:
+            fecha_inicio_dt = datetime.strptime(fecha_inicio, "%Y-%m-%d").date()
+            fecha_fin_dt = datetime.strptime(fecha_fin, "%Y-%m-%d").date()
+            if fecha_inicio_dt > fecha_fin_dt:
+                return jsonify({"error": "La fecha de inicio debe ser anterior o igual a la fecha de fin"}), 400
+        except ValueError:
+            return jsonify({"error": "Formato de fecha inválido (usar YYYY-MM-DD)"}), 400
+        
+        conn = None
+        try:
+            conn = get_db_connection()
+            c = conn.cursor()
+            
+            # Verificar que el médico existe
+            c.execute("SELECT usuario FROM usuarios WHERE usuario = ? AND rol = 'medico'", (medico,))
+            if not c.fetchone():
+                return jsonify({"error": "Médico no encontrado"}), 404
+            
+            # Insertar bloqueo
+            c.execute("""
+                INSERT INTO bloqueos_agenda (medico, fecha_inicio, fecha_fin, motivo, activo)
+                VALUES (?, ?, ?, ?, 1)
+            """, (medico, fecha_inicio, fecha_fin, motivo))
+            
+            conn.commit()
+            bloqueo_id = c.lastrowid
+            conn.close()
+            
+            return jsonify({
+                "success": True,
+                "mensaje": "Bloqueo creado correctamente",
+                "id": bloqueo_id
+            }), 201
+        except Exception as e:
+            if conn:
+                conn.rollback()
+                conn.close()
+            return jsonify({"error": f"Error al crear bloqueo: {str(e)}"}), 500
+
+@app.route("/api/bloqueos-agenda/<int:bloqueo_id>", methods=["DELETE"])
+@login_requerido
+@rol_permitido(["secretaria", "administrador"])
+def eliminar_bloqueo(bloqueo_id):
+    """Eliminar (desactivar) un bloqueo"""
+    conn = None
+    try:
+        conn = get_db_connection()
+        c = conn.cursor()
+        
+        # Desactivar bloqueo en lugar de eliminarlo
+        c.execute("UPDATE bloqueos_agenda SET activo = 0 WHERE id = ?", (bloqueo_id,))
+        
+        if c.rowcount == 0:
+            return jsonify({"error": "Bloqueo no encontrado"}), 404
+        
+        conn.commit()
+        conn.close()
+        
+        return jsonify({"success": True, "mensaje": "Bloqueo eliminado correctamente"})
+    except Exception as e:
+        if conn:
+            conn.rollback()
+            conn.close()
+        return jsonify({"error": f"Error al eliminar bloqueo: {str(e)}"}), 500
 
 @app.route("/api/pagos", methods=["GET", "POST"])
 @login_requerido
@@ -1653,6 +1819,13 @@ def pacientes():
 @rol_requerido("secretaria")
 def agenda():
     return render_template("agenda.html")
+
+@app.route("/admin/gestion")
+@login_requerido
+@rol_permitido(["administrador"])
+def admin_gestion():
+    """Panel de administración para gestionar usuarios y horarios"""
+    return render_template("admin_gestion.html")
 
 # ======================= SISTEMA DE RECEPCIÓN =======================
 
@@ -2881,6 +3054,179 @@ def obtener_medicos_por_especialidad():
         print(f"Error al obtener médicos: {e}")
         return jsonify({"error": "Error al obtener médicos"}), 500
 
+def verificar_bloqueo_fecha(medico, fecha):
+    """Verificar si una fecha está bloqueada para un médico"""
+    try:
+        conn = get_db_connection()
+        c = conn.cursor()
+        
+        c.execute("""
+            SELECT fecha_inicio, fecha_fin, motivo
+            FROM bloqueos_agenda
+            WHERE medico = ?
+            AND activo = 1
+            AND fecha_inicio <= ?
+            AND fecha_fin >= ?
+        """, (medico, fecha, fecha))
+        
+        bloqueo = c.fetchone()
+        conn.close()
+        
+        if bloqueo:
+            return {
+                "bloqueado": True,
+                "motivo": bloqueo[2] or "Vacaciones"
+            }
+        return {"bloqueado": False}
+    except Exception as e:
+        print(f"Error al verificar bloqueo: {e}")
+        return {"bloqueado": False}
+
+@app.route("/api/public/medico-info", methods=["GET"])
+def obtener_info_medico():
+    """Obtener información del médico: días que atiende y próximos turnos disponibles (público)"""
+    medico = request.args.get('medico', '').strip()
+    
+    if not medico:
+        return jsonify({"error": "Médico requerido"}), 400
+    
+    try:
+        conn = get_db_connection()
+        c = conn.cursor()
+        
+        # Obtener bloqueos activos del médico
+        c.execute("""
+            SELECT fecha_inicio, fecha_fin, motivo
+            FROM bloqueos_agenda
+            WHERE medico = ? AND activo = 1
+            AND fecha_fin >= date('now')
+            ORDER BY fecha_inicio
+        """, (medico,))
+        bloqueos = []
+        for row in c.fetchall():
+            bloqueos.append({
+                "fecha_inicio": row[0],
+                "fecha_fin": row[1],
+                "motivo": row[2] or "Vacaciones"
+            })
+        
+        # Obtener días que atiende el médico
+        c.execute("""
+            SELECT DISTINCT dia_semana 
+            FROM agenda 
+            WHERE medico = ? AND activo = 1
+            ORDER BY 
+                CASE dia_semana
+                    WHEN 'LUNES' THEN 1
+                    WHEN 'MARTES' THEN 2
+                    WHEN 'MIERCOLES' THEN 3
+                    WHEN 'JUEVES' THEN 4
+                    WHEN 'VIERNES' THEN 5
+                    WHEN 'SABADO' THEN 6
+                    WHEN 'DOMINGO' THEN 7
+                END
+        """, (medico,))
+        dias_atiende = [row[0] for row in c.fetchall()]
+        
+        # Mapeo de días en español
+        dias_espanol = {
+            'LUNES': 'Lunes',
+            'MARTES': 'Martes',
+            'MIERCOLES': 'Miércoles',
+            'JUEVES': 'Jueves',
+            'VIERNES': 'Viernes',
+            'SABADO': 'Sábado',
+            'DOMINGO': 'Domingo'
+        }
+        dias_atiende_espanol = [dias_espanol.get(dia, dia) for dia in dias_atiende]
+        
+        # Calcular los dos turnos más próximos disponibles
+        hoy = date.today()
+        ahora = datetime.now()
+        hora_actual = ahora.strftime("%H:%M")
+        proximos_turnos = []
+        dias_buscados = 0
+        max_dias = 30  # Buscar hasta 30 días adelante
+        
+        dia_es = {
+            "MONDAY": "LUNES", "TUESDAY": "MARTES", "WEDNESDAY": "MIERCOLES",
+            "THURSDAY": "JUEVES", "FRIDAY": "VIERNES", "SATURDAY": "SABADO", "SUNDAY": "DOMINGO"
+        }
+        
+        fecha_actual = hoy
+        while len(proximos_turnos) < 2 and dias_buscados < max_dias:
+            dia_semana_ingles = fecha_actual.strftime("%A").upper()
+            dia_semana_es = dia_es.get(dia_semana_ingles, "")
+            
+            if dia_semana_es in dias_atiende:
+                # Obtener horarios disponibles para este día
+                c.execute("""
+                    SELECT horario 
+                    FROM agenda 
+                    WHERE medico = ? 
+                    AND dia_semana = ?
+                    AND activo = 1
+                    ORDER BY horario
+                """, (medico, dia_semana_es))
+                horarios_disponibles = [row[0] for row in c.fetchall()]
+                
+                # Obtener horarios ocupados para esta fecha
+                fecha_str = fecha_actual.strftime("%Y-%m-%d")
+                c.execute("""
+                    SELECT hora_turno 
+                    FROM turnos 
+                    WHERE medico = ? 
+                    AND fecha_turno = ?
+                    AND estado != 'ausente'
+                """, (medico, fecha_str))
+                horarios_ocupados = [row[0] for row in c.fetchall()]
+                
+                # Verificar si la fecha está bloqueada
+                bloqueo_info = verificar_bloqueo_fecha(medico, fecha_str)
+                if bloqueo_info["bloqueado"]:
+                    fecha_actual += timedelta(days=1)
+                    dias_buscados += 1
+                    continue
+                
+                # Encontrar el primer horario disponible que sea futuro
+                for horario in horarios_disponibles:
+                    if horario not in horarios_ocupados:
+                        # Si es el día de hoy, verificar que la hora no haya pasado
+                        if fecha_actual == hoy:
+                            if horario > hora_actual:  # Solo horarios futuros del día actual
+                                proximos_turnos.append({
+                                    "fecha": fecha_str,
+                                    "fecha_formato": fecha_actual.strftime("%d/%m/%Y"),
+                                    "dia_semana": dias_espanol.get(dia_semana_es, dia_semana_es),
+                                    "hora": horario
+                                })
+                                break
+                        else:
+                            # Si es un día futuro, cualquier horario disponible es válido
+                            proximos_turnos.append({
+                                "fecha": fecha_str,
+                                "fecha_formato": fecha_actual.strftime("%d/%m/%Y"),
+                                "dia_semana": dias_espanol.get(dia_semana_es, dia_semana_es),
+                                "hora": horario
+                            })
+                            break
+            
+            fecha_actual += timedelta(days=1)
+            dias_buscados += 1
+        
+        conn.close()
+        
+        return jsonify({
+            "dias_atiende": dias_atiende_espanol,
+            "proximos_turnos": proximos_turnos,
+            "bloqueos": bloqueos
+        })
+    except Exception as e:
+        print(f"Error al obtener info del médico: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": "Error al obtener información del médico"}), 500
+
 @app.route("/api/public/turnos-disponibles", methods=["GET"])
 def obtener_turnos_disponibles():
     """Obtener turnos disponibles para un médico y fecha (público)"""
@@ -2908,6 +3254,16 @@ def obtener_turnos_disponibles():
             "THURSDAY": "JUEVES", "FRIDAY": "VIERNES", "SATURDAY": "SABADO", "SUNDAY": "DOMINGO"
         }
         dia_semana_es = dia_es.get(dia_semana, "")
+        
+        # Verificar si la fecha está bloqueada
+        bloqueo_info = verificar_bloqueo_fecha(medico, fecha)
+        if bloqueo_info["bloqueado"]:
+            conn.close()
+            return jsonify({
+                "error": f"El médico no está disponible en esta fecha: {bloqueo_info['motivo']}",
+                "bloqueado": True,
+                "motivo": bloqueo_info["motivo"]
+            }), 400
         
         # Obtener horarios disponibles del médico para ese día
         c.execute("""
