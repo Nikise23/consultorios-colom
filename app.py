@@ -2611,18 +2611,21 @@ def enviar_email_confirmacion(destinatario, nombre_paciente, medico, fecha, hora
                 import traceback
                 traceback.print_exc()
         
-        # Obtener configuración desde app.config (debería tener las variables)
-        mail_username = app.config.get('MAIL_USERNAME', '')
-        mail_password = app.config.get('MAIL_PASSWORD', '')
+        # Obtener configuración desde app.config o os.environ (prioridad a os.environ en Render)
+        mail_username = os.environ.get('MAIL_USERNAME', '') or app.config.get('MAIL_USERNAME', '')
+        mail_password = os.environ.get('MAIL_PASSWORD', '') or app.config.get('MAIL_PASSWORD', '')
         mail_from = app.config.get('MAIL_FROM', '') or mail_username
-        mail_server = app.config.get('MAIL_SERVER', 'smtp.gmail.com')
-        mail_port = app.config.get('MAIL_PORT', 587)
-        mail_use_tls = app.config.get('MAIL_USE_TLS', True)
+        mail_server = os.environ.get('MAIL_SERVER', '') or app.config.get('MAIL_SERVER', 'smtp.gmail.com')
+        mail_port = int(os.environ.get('MAIL_PORT', '') or app.config.get('MAIL_PORT', 587))
+        mail_use_tls = os.environ.get('MAIL_USE_TLS', '').lower() in ['true', '1', 'yes'] if os.environ.get('MAIL_USE_TLS') else app.config.get('MAIL_USE_TLS', True)
         
-        print(f"🔍 DEBUG Email - Username: {'✓' if mail_username else '✗'}, Password: {'✓' if mail_password else '✗'}")
-        print(f"🔍 DEBUG Email - Server: {mail_server}, Port: {mail_port}, TLS: {mail_use_tls}")
-        print(f"🔍 DEBUG Email - app.config['MAIL_USERNAME']: {app.config.get('MAIL_USERNAME', 'NO EXISTE')}")
-        print(f"🔍 DEBUG Email - app.config['MAIL_PASSWORD']: {'EXISTE' if app.config.get('MAIL_PASSWORD') else 'NO EXISTE'}")
+        print(f"🔍 [EMAIL] Configuración final:")
+        print(f"   Username: {'✓' if mail_username else '✗'} ({mail_username[:10] + '...' if mail_username else 'VACÍO'})")
+        print(f"   Password: {'✓' if mail_password else '✗'}")
+        print(f"   Server: {mail_server}:{mail_port}")
+        print(f"   TLS: {mail_use_tls}")
+        print(f"   From: {mail_from}")
+        sys.stdout.flush()
         
         if not mail_username or not mail_password:
             print("⚠️ Configuración de email no disponible. Email no enviado.")
@@ -2732,10 +2735,12 @@ Altube 2085, Jose C. Paz
         msg.attach(part2)
         
         # Enviar email
+        import sys
         print(f"📧 Intentando enviar email a {destinatario}...")
         print(f"   Servidor: {mail_server}:{mail_port}")
         print(f"   Usuario: {mail_username}")
         print(f"   TLS: {mail_use_tls}")
+        sys.stdout.flush()
         
         server = None
         max_intentos = 2
@@ -2761,16 +2766,24 @@ Altube 2085, Jose C. Paz
                     server.timeout = 60
                 
                 print(f"   Autenticando con usuario: {mail_username}")
+                sys.stdout.flush()
                 server.login(mail_username, mail_password)
                 print("   ✓ Autenticación exitosa")
+                sys.stdout.flush()
                 
                 print(f"   Enviando mensaje...")
+                sys.stdout.flush()
                 # Enviar mensaje con timeout explícito
                 try:
                     server.send_message(msg)
                     print("   ✓ Mensaje enviado al servidor")
+                    sys.stdout.flush()
                 except Exception as send_error:
                     print(f"   ⚠️ Error al enviar mensaje: {send_error}")
+                    sys.stdout.flush()
+                    import traceback
+                    traceback.print_exc()
+                    sys.stdout.flush()
                     raise
                 
                 # Cerrar conexión de forma segura
@@ -2780,6 +2793,7 @@ Altube 2085, Jose C. Paz
                     server.close()
                 
                 print(f"✅ Email de confirmación enviado exitosamente a {destinatario}")
+                sys.stdout.flush()
                 return True
                 
             except smtplib.SMTPAuthenticationError as e:
@@ -2787,6 +2801,7 @@ Altube 2085, Jose C. Paz
                 print("   Verifica que MAIL_USERNAME y MAIL_PASSWORD sean correctos")
                 print("   Si usas Gmail, asegúrate de usar una 'Contraseña de Aplicación'")
                 print(f"   Usuario usado: {mail_username}")
+                sys.stdout.flush()
                 if server:
                     try:
                         server.quit()
@@ -2794,9 +2809,12 @@ Altube 2085, Jose C. Paz
                         server.close()
                 return False
                 
-            except (smtplib.SMTPServerDisconnected, smtplib.SMTPConnectError, ConnectionError) as e:
+            except (smtplib.SMTPServerDisconnected, smtplib.SMTPConnectError, ConnectionError, OSError) as e:
                 print(f"❌ Error de conexión SMTP (intento {intento}/{max_intentos}): {e}")
                 print(f"   Tipo de error: {type(e).__name__}")
+                import traceback
+                traceback.print_exc()
+                sys.stdout.flush()
                 if server:
                     try:
                         server.quit()
@@ -2807,14 +2825,19 @@ Altube 2085, Jose C. Paz
                             pass
                 if intento < max_intentos:
                     print("   Reintentando...")
+                    sys.stdout.flush()
                     continue
                 else:
                     print("   Se agotaron los intentos")
+                    sys.stdout.flush()
                     return False
                     
             except smtplib.SMTPException as e:
                 print(f"❌ Error SMTP: {e}")
                 print(f"   Tipo de error: {type(e).__name__}")
+                import traceback
+                traceback.print_exc()
+                sys.stdout.flush()
                 if server:
                     try:
                         server.quit()
@@ -2822,12 +2845,16 @@ Altube 2085, Jose C. Paz
                         server.close()
                 if intento < max_intentos and "timeout" in str(e).lower():
                     print("   Reintentando por timeout...")
+                    sys.stdout.flush()
                     continue
                 return False
                 
             except Exception as e:
                 print(f"❌ Error inesperado al enviar email: {e}")
                 print(f"   Tipo de error: {type(e).__name__}")
+                import traceback
+                traceback.print_exc()
+                sys.stdout.flush()
                 if server:
                     try:
                         server.quit()
@@ -2838,10 +2865,9 @@ Altube 2085, Jose C. Paz
                             pass
                 if intento < max_intentos:
                     print("   Reintentando...")
+                    sys.stdout.flush()
                     continue
                 else:
-                    import traceback
-                    traceback.print_exc()
                     return False
         
         return False
@@ -3656,19 +3682,33 @@ def reservar_turno_publico():
         def enviar_email_async():
             """Enviar email en segundo plano"""
             try:
+                import sys
+                print(f"🔄 [THREAD] Iniciando envío de email a {email}...")
+                sys.stdout.flush()
+                
                 resultado = enviar_email_confirmacion(email, nombre_paciente, nombre_medico, fecha, hora, especialidad)
+                
                 if resultado:
-                    print(f"✅ Email de confirmación enviado a {email}")
+                    print(f"✅ [THREAD] Email de confirmación enviado exitosamente a {email}")
                 else:
-                    print(f"⚠️ No se pudo enviar el email a {email}, pero el turno fue reservado")
+                    print(f"⚠️ [THREAD] No se pudo enviar el email a {email}, pero el turno fue reservado")
+                
+                sys.stdout.flush()
             except Exception as e:
-                print(f"❌ Error al enviar email (turno reservado igual): {e}")
+                print(f"❌ [THREAD] Error al enviar email (turno reservado igual): {e}")
                 import traceback
                 traceback.print_exc()
+                import sys
+                sys.stdout.flush()
         
         # Iniciar envío de email en hilo separado
-        email_thread = threading.Thread(target=enviar_email_async, daemon=True)
+        # Usar daemon=False para que el thread no se termine cuando la request termina
+        email_thread = threading.Thread(target=enviar_email_async, daemon=False)
         email_thread.start()
+        
+        # Forzar flush de logs antes de responder
+        import sys
+        sys.stdout.flush()
         
         mensaje = "Turno reservado correctamente. Se enviará un email de confirmación."
         
