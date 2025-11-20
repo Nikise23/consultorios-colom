@@ -65,21 +65,38 @@ print(f"   Desde: {app.config['MAIL_FROM']}")
 print(f"   os.environ MAIL_USERNAME: {os.environ.get('MAIL_USERNAME', 'NO ENCONTRADO')}")
 print(f"   os.environ MAIL_PASSWORD: {'ENCONTRADO' if os.environ.get('MAIL_PASSWORD') else 'NO ENCONTRADO'}")
 
+# Configuración de ruta de base de datos
+# En Render con disco persistente, usar la variable de entorno RENDER_DISK_PATH si está configurada
+# Si no, usar la ruta relativa 'data/consultorio.db'
+def get_db_path():
+    """Obtener la ruta de la base de datos (soporta disco persistente en Render)"""
+    # Verificar si hay una ruta de disco persistente configurada
+    render_disk_path = os.environ.get('RENDER_DISK_PATH', '')
+    if render_disk_path:
+        # Si hay disco persistente, usar esa ruta
+        db_path = os.path.join(render_disk_path, 'consultorio.db')
+        # Crear directorio si no existe
+        os.makedirs(render_disk_path, exist_ok=True)
+        return db_path
+    else:
+        # Usar ruta relativa (desarrollo local o sin disco persistente)
+        os.makedirs('data', exist_ok=True)
+        return 'data/consultorio.db'
+
 # Función para obtener conexión a la base de datos con timeout
 def get_db_connection():
     """Obtener conexión a la base de datos con timeout y configuración optimizada"""
     import time
     import random
     
-    # Crear directorio data si no existe (necesario para Render)
-    os.makedirs('data', exist_ok=True)
+    db_path = get_db_path()
     
     max_retries = 5
     base_delay = 0.1
     
     for attempt in range(max_retries):
         try:
-            conn = sqlite3.connect("data/consultorio.db", timeout=30.0)
+            conn = sqlite3.connect(db_path, timeout=30.0)
             conn.execute("PRAGMA journal_mode=WAL")  # Modo WAL para mejor concurrencia
             conn.execute("PRAGMA synchronous=NORMAL")  # Balance entre seguridad y velocidad
             conn.execute("PRAGMA cache_size=10000")  # Cache más grande
