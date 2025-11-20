@@ -2552,7 +2552,20 @@ def buscar_historias():
 
 def enviar_email_confirmacion(destinatario, nombre_paciente, medico, fecha, hora, especialidad):
     """Enviar email de confirmación de turno"""
+    import sys
+    print(f"📧 [EMAIL] Función llamada para enviar email a {destinatario}")
+    sys.stdout.flush()
+    
     try:
+        # Primero intentar leer desde os.environ (Render usa esto)
+        mail_username_env = os.environ.get('MAIL_USERNAME', '')
+        mail_password_env = os.environ.get('MAIL_PASSWORD', '')
+        
+        print(f"🔍 [EMAIL] Variables desde os.environ:")
+        print(f"   MAIL_USERNAME: {'✓' if mail_username_env else '✗'}")
+        print(f"   MAIL_PASSWORD: {'✓' if mail_password_env else '✗'}")
+        sys.stdout.flush()
+        
         # Intentar cargar desde .env si no están en app.config
         if not app.config.get('MAIL_USERNAME') or not app.config.get('MAIL_PASSWORD'):
             # Método 1: Intentar con python-dotenv
