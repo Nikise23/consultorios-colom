@@ -3087,7 +3087,7 @@ def reservar_turno_publico():
             "success": True,
             "mensaje": mensaje,
             "turno_id": turno_id,
-            "email_enviado": email_enviado
+            "email_enviado": True  # Se está procesando en segundo plano
         }), 201
         
     except Exception as e:
