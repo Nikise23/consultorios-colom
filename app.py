@@ -8,6 +8,7 @@ import csv
 import io
 import shutil
 import time
+import threading
 from functools import wraps
 from datetime import datetime, date, timezone, timedelta
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -2573,18 +2574,18 @@ Altube 2085, Jose C. Paz
                     import time
                     time.sleep(2)  # Esperar 2 segundos antes de reintentar
                 
-                # Crear conexión con timeout más largo
-                server = smtplib.SMTP(mail_server, mail_port, timeout=30)
+                # Crear conexión con timeout más largo (aumentado para Render)
+                server = smtplib.SMTP(mail_server, mail_port, timeout=60)
                 server.set_debuglevel(0)  # Desactivado para producción
                 
-                # Configurar timeout para operaciones
-                server.timeout = 30
+                # Configurar timeout para operaciones (aumentado para Render)
+                server.timeout = 60
                 
                 if mail_use_tls:
                     print("   Iniciando TLS...")
                     server.starttls()
-                    # Reconfigurar timeout después de TLS
-                    server.timeout = 30
+                    # Reconfigurar timeout después de TLS (aumentado para Render)
+                    server.timeout = 60
                 
                 print(f"   Autenticando con usuario: {mail_username}")
                 server.login(mail_username, mail_password)
@@ -3062,24 +3063,25 @@ def reservar_turno_publico():
         turno_id = c.lastrowid
         conn.commit()
         
-        # Enviar email de confirmación
-        email_enviado = False
-        try:
-            email_enviado = enviar_email_confirmacion(email, nombre_paciente, nombre_medico, fecha, hora, especialidad)
-            if email_enviado:
-                print(f"✅ Email de confirmación enviado a {email}")
-            else:
-                print(f"⚠️ No se pudo enviar el email a {email}, pero el turno fue reservado")
-        except Exception as e:
-            print(f"❌ Error al enviar email (turno reservado igual): {e}")
-            import traceback
-            traceback.print_exc()
+        # Enviar email de confirmación de forma asíncrona (no bloquea la respuesta)
+        def enviar_email_async():
+            """Enviar email en segundo plano"""
+            try:
+                resultado = enviar_email_confirmacion(email, nombre_paciente, nombre_medico, fecha, hora, especialidad)
+                if resultado:
+                    print(f"✅ Email de confirmación enviado a {email}")
+                else:
+                    print(f"⚠️ No se pudo enviar el email a {email}, pero el turno fue reservado")
+            except Exception as e:
+                print(f"❌ Error al enviar email (turno reservado igual): {e}")
+                import traceback
+                traceback.print_exc()
         
-        mensaje = "Turno reservado correctamente."
-        if email_enviado:
-            mensaje += " Se ha enviado un email de confirmación."
-        else:
-            mensaje += " (No se pudo enviar el email de confirmación, pero el turno está reservado)"
+        # Iniciar envío de email en hilo separado
+        email_thread = threading.Thread(target=enviar_email_async, daemon=True)
+        email_thread.start()
+        
+        mensaje = "Turno reservado correctamente. Se enviará un email de confirmación."
         
         return jsonify({
             "success": True,
