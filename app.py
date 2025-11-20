@@ -2551,26 +2551,12 @@ def buscar_historias():
 # ====================== SISTEMA DE RESERVA DE TURNOS PÚBLICO ======================
 
 def enviar_email_confirmacion(destinatario, nombre_paciente, medico, fecha, hora, especialidad):
-    """Enviar email de confirmación de turno - Usa Resend (API REST) o SMTP como fallback"""
+    """Enviar email de confirmación de turno"""
     import sys
     print(f"📧 [EMAIL] Función llamada para enviar email a {destinatario}")
     sys.stdout.flush()
     
     try:
-        # Verificar si hay API key de Resend (prioridad para producción en Render)
-        resend_api_key = os.environ.get('RESEND_API_KEY', '') or app.config.get('RESEND_API_KEY', '')
-        resend_from_email = os.environ.get('RESEND_FROM_EMAIL', '') or app.config.get('RESEND_FROM_EMAIL', '')
-        
-        # Si hay Resend configurado, usarlo (funciona en Render)
-        if resend_api_key:
-            print(f"📧 [EMAIL] Usando Resend (API REST) para envío")
-            sys.stdout.flush()
-            return enviar_email_resend(destinatario, nombre_paciente, medico, fecha, hora, especialidad, resend_api_key, resend_from_email)
-        
-        # Si no hay Resend, intentar SMTP (solo para desarrollo local)
-        print(f"📧 [EMAIL] Resend no configurado, intentando SMTP (puede fallar en Render)")
-        sys.stdout.flush()
-        
         # Primero intentar leer desde os.environ (Render usa esto)
         mail_username_env = os.environ.get('MAIL_USERNAME', '')
         mail_password_env = os.environ.get('MAIL_PASSWORD', '')
@@ -2902,135 +2888,6 @@ Altube 2085, Jose C. Paz
         print(f"❌ Error general en enviar_email_confirmacion: {e}")
         import traceback
         traceback.print_exc()
-        return False
-
-def enviar_email_resend(destinatario, nombre_paciente, medico, fecha, hora, especialidad, api_key, from_email):
-    """Enviar email usando Resend (API REST) - Funciona en Render"""
-    import sys
-    try:
-        import resend
-        
-        # Inicializar cliente Resend
-        resend.api_key = api_key
-        
-        # Formatear fecha
-        try:
-            fecha_obj = datetime.strptime(fecha, "%Y-%m-%d").date()
-            fecha_formateada = fecha_obj.strftime("%d/%m/%Y")
-        except:
-            fecha_formateada = fecha
-        
-        # HTML del email
-        html_content = f"""
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <style>
-        body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; }}
-        .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
-        .header {{ background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; text-align: center; border-radius: 10px 10px 0 0; }}
-        .content {{ background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }}
-        .info-box {{ background: white; padding: 20px; margin: 20px 0; border-left: 4px solid #667eea; border-radius: 5px; }}
-        .info-item {{ margin: 10px 0; }}
-        .info-label {{ font-weight: bold; color: #667eea; }}
-        .footer {{ text-align: center; margin-top: 20px; color: #666; font-size: 12px; }}
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h1>✓ Turno Confirmado</h1>
-        </div>
-        <div class="content">
-            <p>Estimado/a <strong>{nombre_paciente}</strong>,</p>
-            <p>Su turno ha sido confirmado exitosamente.</p>
-            
-            <div class="info-box">
-                <div class="info-item">
-                    <span class="info-label">Médico:</span> Dr./Dra. {medico}
-                </div>
-                <div class="info-item">
-                    <span class="info-label">Especialidad:</span> {especialidad}
-                </div>
-                <div class="info-item">
-                    <span class="info-label">Fecha:</span> {fecha_formateada}
-                </div>
-                <div class="info-item">
-                    <span class="info-label">Hora:</span> {hora}
-                </div>
-                <div class="info-item">
-                    <span class="info-label">Dirección:</span> Altube 2085, Jose C. Paz
-                </div>
-            </div>
-            
-            <p><strong>Importante:</strong> Por favor, llegue 10 minutos antes de su turno.</p>
-            
-            <p>Si necesita cancelar o modificar su turno, comuníquese con nosotros.</p>
-            
-            <p>Saludos cordiales,<br><strong>Consultorios Colom</strong><br>Altube 2085, Jose C. Paz</p>
-        </div>
-        <div class="footer">
-            <p>Este es un email automático, por favor no responda.</p>
-        </div>
-    </div>
-</body>
-</html>
-        """
-        
-        # Texto plano
-        texto_plano = f"""
-Estimado/a {nombre_paciente},
-
-Su turno ha sido confirmado exitosamente.
-
-Detalles del turno:
-- Médico: Dr./Dra. {medico}
-- Especialidad: {especialidad}
-- Fecha: {fecha_formateada}
-- Hora: {hora}
-- Dirección: Altube 2085, Jose C. Paz
-
-Por favor, llegue 10 minutos antes de su turno.
-
-Si necesita cancelar o modificar su turno, comuníquese con nosotros.
-
-Saludos cordiales,
-Consultorios Colom
-Altube 2085, Jose C. Paz
-        """
-        
-        print(f"📧 [RESEND] Enviando email a {destinatario}...")
-        sys.stdout.flush()
-        
-        # Enviar email con Resend
-        params = resend.EmailsParams(
-            from_=from_email or "Consultorios Colom <onboarding@resend.dev>",
-            to=[destinatario],
-            subject=f'Confirmación de Turno - {medico}',
-            html=html_content,
-            text=texto_plano
-        )
-        
-        email = resend.Emails.send(params)
-        
-        print(f"✅ [RESEND] Email enviado exitosamente a {destinatario}")
-        print(f"   ID del email: {email.id if hasattr(email, 'id') else 'N/A'}")
-        sys.stdout.flush()
-        
-        return True
-        
-    except ImportError:
-        print("❌ [RESEND] La librería 'resend' no está instalada")
-        print("   Instala con: pip install resend")
-        sys.stdout.flush()
-        return False
-    except Exception as e:
-        print(f"❌ [RESEND] Error al enviar email: {e}")
-        print(f"   Tipo de error: {type(e).__name__}")
-        import traceback
-        traceback.print_exc()
-        sys.stdout.flush()
         return False
 
 @app.route("/reservar-turno")
