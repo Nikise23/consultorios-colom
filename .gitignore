@@ -28,10 +28,14 @@ instance/
 .webassets-cache
 
 # Base de datos
+*.db
+*.db-shm
+*.db-wal
 data/*.db
 data/*.db-shm
 data/*.db-wal
 data/consultorio_backup_*.db
+consultorio.db
 
 # Variables de entorno
 .env
