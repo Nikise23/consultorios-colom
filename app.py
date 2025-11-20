@@ -2896,6 +2896,131 @@ def backup_database():
         return f"Error al crear backup: {str(e)}", 500
 
 # ⚠️ ENDPOINT TEMPORAL: Eliminar después de crear el primer administrador
+@app.route("/setup-upload-db", methods=["GET", "POST"])
+def setup_upload_db():
+    """Endpoint temporal para subir base de datos desde local a producción"""
+    if request.method == "POST":
+        if 'database' not in request.files:
+            return "No se envió ningún archivo", 400
+        
+        file = request.files['database']
+        if file.filename == '':
+            return "No se seleccionó ningún archivo", 400
+        
+        if not file.filename.endswith('.db'):
+            return "El archivo debe ser una base de datos SQLite (.db)", 400
+        
+        try:
+            import shutil
+            from datetime import datetime
+            
+            # Hacer backup de la BD actual de producción
+            if os.path.exists("data/consultorio.db"):
+                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                backup_path = f"data/consultorio_backup_before_upload_{timestamp}.db"
+                shutil.copy("data/consultorio.db", backup_path)
+            
+            # Guardar la nueva BD
+            os.makedirs("data", exist_ok=True)
+            file.save("data/consultorio.db")
+            
+            return f"""
+            <html>
+            <head>
+                <title>Base de Datos Subida</title>
+                <style>
+                    body {{ font-family: Arial, sans-serif; padding: 20px; background: #f0f0f0; }}
+                    .container {{ max-width: 600px; margin: 50px auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }}
+                    h2 {{ color: #28a745; }}
+                    .success {{ color: #28a745; font-weight: bold; }}
+                    .warning {{ background: #fff3cd; border: 1px solid #ffc107; padding: 15px; border-radius: 5px; margin-top: 20px; }}
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <h2>✅ Base de Datos Subida Exitosamente</h2>
+                    <p class="success">La base de datos local se ha subido a producción.</p>
+                    <p><strong>Archivo:</strong> {file.filename}</p>
+                    <div class="warning">
+                        <strong>⚠️ IMPORTANTE:</strong> 
+                        <ul>
+                            <li>Se creó un backup de la BD anterior: {backup_path if os.path.exists("data/consultorio.db") else "N/A"}</li>
+                            <li>Por seguridad, elimina este endpoint después de usarlo.</li>
+                            <li>Verifica que todo funcione correctamente.</li>
+                        </ul>
+                    </div>
+                    <p><a href="/login" style="display: inline-block; margin-top: 20px; padding: 10px 20px; background: #667eea; color: white; text-decoration: none; border-radius: 5px;">Ir al Login</a></p>
+                </div>
+            </body>
+            </html>
+            """
+        except Exception as e:
+            import traceback
+            error_details = traceback.format_exc()
+            return f"""
+            <html>
+            <body style="font-family: Arial; padding: 20px;">
+                <h2 style="color: #dc3545;">❌ Error al subir base de datos</h2>
+                <p>{str(e)}</p>
+                <pre>{error_details}</pre>
+                <p><a href="/setup-upload-db">Intentar de nuevo</a></p>
+            </body>
+            </html>
+            """, 500
+    
+    return """
+    <html>
+    <head>
+        <title>Subir Base de Datos</title>
+        <style>
+            body { font-family: Arial, sans-serif; padding: 20px; background: #f0f0f0; }
+            .container { max-width: 600px; margin: 50px auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+            h2 { color: #333; }
+            .warning { background: #fff3cd; border: 1px solid #ffc107; padding: 15px; border-radius: 5px; margin-bottom: 20px; }
+            .danger { background: #f8d7da; border: 1px solid #dc3545; padding: 15px; border-radius: 5px; margin-bottom: 20px; color: #721c24; }
+            input[type="file"] { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ddd; border-radius: 5px; }
+            button { width: 100%; padding: 12px; background: #667eea; color: white; border: none; border-radius: 5px; font-size: 16px; cursor: pointer; margin-top: 10px; }
+            button:hover { background: #5568d3; }
+            .info { background: #d1ecf1; border: 1px solid #bee5eb; padding: 15px; border-radius: 5px; margin-bottom: 20px; }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h2>📤 Subir Base de Datos Local a Producción</h2>
+            <div class="danger">
+                <strong>⚠️ ADVERTENCIA CRÍTICA:</strong>
+                <ul>
+                    <li>Esto REEMPLAZARÁ completamente la base de datos de producción</li>
+                    <li>Se perderán TODOS los datos actuales de producción</li>
+                    <li>Se creará un backup automático antes de reemplazar</li>
+                    <li>Usa esto solo si estás seguro de que quieres reemplazar los datos</li>
+                </ul>
+            </div>
+            <div class="info">
+                <strong>ℹ️ Información:</strong>
+                <ul>
+                    <li>Sube tu archivo <code>data/consultorio.db</code> local</li>
+                    <li>El archivo debe ser una base de datos SQLite (.db)</li>
+                    <li>Se creará un backup de la BD actual antes de reemplazar</li>
+                </ul>
+            </div>
+            <div class="warning">
+                <strong>🔒 Seguridad:</strong> Este endpoint es temporal. Elimínalo después de usarlo.
+            </div>
+            <form method="POST" enctype="multipart/form-data">
+                <label for="database"><strong>Seleccionar archivo de base de datos:</strong></label>
+                <input type="file" id="database" name="database" accept=".db" required>
+                <button type="submit">Subir Base de Datos</button>
+            </form>
+            <p style="margin-top: 20px; text-align: center;">
+                <a href="/login">Volver al Login</a> | 
+                <a href="/setup-update-db">Solo actualizar estructura</a>
+            </p>
+        </div>
+    </body>
+    </html>
+    """
+
 @app.route("/setup-update-db", methods=["GET", "POST"])
 def setup_update_db():
     """Endpoint temporal para actualizar la base de datos en producción"""
