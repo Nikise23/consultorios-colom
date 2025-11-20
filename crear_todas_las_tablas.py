@@ -8,9 +8,21 @@ import sqlite3
 def crear_todas_las_tablas():
     """Crear todas las tablas del sistema"""
     
-    print("🏗️ Creando todas las tablas del sistema...")
+    import os
     
-    conn = sqlite3.connect('consultorio.db')
+    # Buscar la base de datos
+    db_path = 'data/consultorio.db'
+    if not os.path.exists(db_path):
+        db_path = 'consultorio.db'
+        if not os.path.exists(db_path):
+            # Crear directorio data si no existe
+            os.makedirs('data', exist_ok=True)
+            db_path = 'data/consultorio.db'
+    
+    print(f"🏗️ Creando todas las tablas del sistema...")
+    print(f"📁 Base de datos: {db_path}")
+    
+    conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
     
     try:

@@ -3065,8 +3065,6 @@ def setup_update_db():
     """Endpoint temporal para actualizar la base de datos en producción"""
     if request.method == "POST":
         try:
-            # Importar y ejecutar la función de actualización
-            from actualizar_base_datos import actualizar_base_datos
             import io
             import sys
             
@@ -3074,7 +3072,19 @@ def setup_update_db():
             old_stdout = sys.stdout
             sys.stdout = buffer = io.StringIO()
             
-            # Ejecutar actualización
+            # PRIMERO: Crear todas las tablas si no existen
+            print("🔄 Paso 1: Creando tablas base...")
+            try:
+                from crear_todas_las_tablas import crear_todas_las_tablas
+                crear_todas_las_tablas()
+                print("✅ Tablas base creadas/verificadas")
+            except Exception as e:
+                print(f"⚠️ Error al crear tablas base: {e}")
+                # Continuar de todas formas, puede que ya existan
+            
+            # SEGUNDO: Actualizar con nuevas columnas/tablas
+            print("\n🔄 Paso 2: Actualizando estructura...")
+            from actualizar_base_datos import actualizar_base_datos
             resultado = actualizar_base_datos()
             
             # Obtener la salida
