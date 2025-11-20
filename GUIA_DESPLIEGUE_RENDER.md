@@ -65,7 +65,12 @@ git push -u origin main
 - **Runtime**: `Python 3`
 - **Build Command**: 
   ```
-  pip install -r requirements.txt && python crear_todas_las_tablas.py
+  chmod +x build.sh && ./build.sh
+  ```
+  
+  O si prefieres el comando directo:
+  ```
+  pip install -r requirements.txt && python crear_todas_las_tablas.py && python actualizar_base_datos.py
   ```
 - **Start Command**: 
   ```
